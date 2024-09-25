@@ -21,12 +21,12 @@ app.use(express.json());
 // Serve static files
 app.use("/public", express.static(path.join(__dirname, "public")));
 
-app.use("/admins", require("./routes/adminRoute"));
-app.use("/user", require("./routes/usersRoute"));
-app.use("/category", require("./routes/categoriesRoute"));
-app.use("/subcategory", require("./routes/subCategoriesRoute"));
-app.use("/product", require("./routes/productsRoute"));
-app.use("/settings", require("./routes/settingRoute"));
+app.use("/api/v1/admins", require("./routes/adminRoute"));
+app.use("/api/v1/user", require("./routes/usersRoute"));
+app.use("/api/v1/category", require("./routes/categoriesRoute"));
+app.use("/api/v1/subcategory", require("./routes/subCategoriesRoute"));
+app.use("/api/v1/product", require("./routes/productsRoute"));
+app.use("/api/v1/settings", require("./routes/settingRoute"));
 
 const port = process.env.PORT || 8080;
 
