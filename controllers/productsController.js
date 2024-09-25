@@ -127,7 +127,7 @@ exports.createProducts = async (req, res) => {
     }
 
     // Send success response
-    res.status(201).send({
+    res.status(200).send({
       success: true,
       message: "Product inserted successfully",
     });
@@ -618,7 +618,7 @@ exports.createPostCode = async (req, res) => {
       });
     }
 
-    res.status(201).send({
+    res.status(200).send({
       success: true,
       message: "Post code inserted successfully",
     });

@@ -55,13 +55,12 @@ app.use("*", (req, res, next) => {
   });
 });
 
-// admin
 // cart
 // favorite
 // orders
 // user_delivery_address
 
-//
+// admin
 
 // users
 // products
@@ -70,27 +69,6 @@ app.use("*", (req, res, next) => {
 // app_logo
 // settings
 // post_code
-
-// const express = require('express');
-// const mysql = require('mysql2');
-// const bcrypt = require('bcryptjs');
-// const jwt = require('jsonwebtoken');
-
-// const app = express();
-// app.use(express.json());
-
-// // MySQL connection
-// const db = mysql.createConnection({
-//     host: 'localhost',
-//     user: 'root',
-//     password: 'password',
-//     database: 'your_database'
-// });
-
-// db.connect(err => {
-//     if (err) throw err;
-//     console.log('MySQL Connected...');
-// });
 
 // // Register User API
 // app.post('/register', (req, res) => {
@@ -126,9 +104,4 @@ app.use("*", (req, res, next) => {
 // app.get('/admin/products', checkPermissions(['Create Product', 'Modify Product']), (req, res) => {
 //     // Business logic here
 //     res.send('Access Granted to Products Management');
-// });
-
-// // Listen to port
-// app.listen(3000, () => {
-//     console.log('Server is running on port 3000');
 // });

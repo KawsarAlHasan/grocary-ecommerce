@@ -34,7 +34,7 @@ exports.createCategory = async (req, res) => {
     }
 
     // Send success response
-    res.status(201).send({
+    res.status(200).send({
       success: true,
       message: "Category inserted successfully",
     });

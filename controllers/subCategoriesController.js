@@ -34,7 +34,7 @@ exports.createSubCategory = async (req, res) => {
     }
 
     // Send success response
-    res.status(201).send({
+    res.status(200).send({
       success: true,
       message: "Sub Category inserted successfully",
     });
