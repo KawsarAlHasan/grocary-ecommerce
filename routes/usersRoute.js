@@ -12,6 +12,7 @@ const {
   userStatusUpdate,
 } = require("../controllers/usersController");
 const verifyUser = require("../middleware/verifyUser");
+const verifyAdmin = require("../middleware/verifyAdmin");
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.get("/all", getAllUsers);
 router.get("/:id", getSingleUser);
 router.put("/update", verifyUser, updateUser);
 router.put("/password", verifyUser, updateUserPassword);
-router.put("/status/:id", userStatusUpdate);
-router.delete("/delete/:id", deleteUser);
+router.put("/status/:id", verifyAdmin, userStatusUpdate);
+router.delete("/delete/:id", verifyAdmin, deleteUser);
 
 module.exports = router;

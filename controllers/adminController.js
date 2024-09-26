@@ -51,8 +51,8 @@ exports.signUpAdmin = async (req, res) => {
   }
 };
 
-// user login
-exports.userLogin = async (req, res) => {
+// admin login
+exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -70,21 +70,21 @@ exports.userLogin = async (req, res) => {
         error: "Email and Password is not correct",
       });
     }
-    const user = results[0];
-    const isMatch = await bcrypt.compare(password, user.password);
+    const admin = results[0];
+    const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
         error: "Email and Password is not correct",
       });
     }
-    const token = generateUserToken({ id: user.id });
-    const { password: pwd, ...adminsWithoutPassword } = user;
+    const token = generateAdminToken({ id: admin.id });
+    const { password: pwd, ...adminsWithoutPassword } = admin;
     res.status(200).json({
       success: true,
       message: "Successfully logged in",
       data: {
-        user: usersWithoutPassword,
+        admin: adminsWithoutPassword,
         token,
       },
     });
@@ -110,207 +110,51 @@ exports.getMeAdmin = async (req, res) => {
   }
 };
 
-// get all Users
-exports.getAllUsers = async (req, res) => {
+// update admin
+exports.updateAdmin = async (req, res) => {
   try {
-    let { page, limit, name, email, id } = req.query;
-
-    // Default pagination values
-    page = parseInt(page) || 1; // Default page is 1
-    limit = parseInt(limit) || 20; // Default limit is 20
-    const offset = (page - 1) * limit; // Calculate offset for pagination
-
-    // Initialize SQL query and parameters array
-    let sqlQuery = "SELECT * FROM users WHERE 1=1"; // 1=1 makes appending conditions easier
-    const queryParams = [];
-
-    // Add filters for name, email, and id if provided
-    if (name) {
-      sqlQuery += " AND name LIKE ?";
-      queryParams.push(`%${name}%`); // Using LIKE for partial match
-    }
-
-    if (email) {
-      sqlQuery += " AND email LIKE ?";
-      queryParams.push(`%${email}%`);
-    }
-
-    if (id) {
-      sqlQuery += " AND id = ?";
-      queryParams.push(id);
-    }
-
-    // Add pagination to the query
-    sqlQuery += " LIMIT ? OFFSET ?";
-    queryParams.push(limit, offset);
-
-    // Execute the query with filters and pagination
-    const [data] = await db.query(sqlQuery, queryParams);
-
-    if (!data || data.length === 0) {
-      return res.status(200).send({
-        success: true,
-        message: "No users found",
-        data: [],
-      });
-    }
-
-    // Get total count of users for pagination info (with the same filters)
-    let countQuery = "SELECT COUNT(*) as count FROM users WHERE 1=1";
-    const countParams = [];
-
-    // Add the same filters for total count query
-    if (name) {
-      countQuery += " AND name LIKE ?";
-      countParams.push(`%${name}%`);
-    }
-
-    if (email) {
-      countQuery += " AND email LIKE ?";
-      countParams.push(`%${email}%`);
-    }
-
-    if (id) {
-      countQuery += " AND id = ?";
-      countParams.push(id);
-    }
-
-    const [totalUsersCount] = await db.query(countQuery, countParams);
-    const totalUsers = totalUsersCount[0].count;
-
-    // Send response with users data and pagination info
-    res.status(200).send({
-      success: true,
-      message: "All Users",
-      totalUsers: totalUsers,
-      currentPage: page,
-      totalPages: Math.ceil(totalUsers / limit),
-      data: data,
-    });
-  } catch (error) {
-    // Error handling
-    res.status(500).send({
-      success: false,
-      message: "Error in Get All Users",
-      error: error.message,
-    });
-  }
-};
-
-// get single user by id
-exports.getSingleUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    if (!userId) {
-      return res.status(404).send({
-        success: false,
-        message: "User ID is required in params",
-      });
-    }
-
-    const [data] = await db.query(`SELECT * FROM users WHERE id=? `, [userId]);
-    if (!data || data.length === 0) {
-      return res.status(404).send({
-        success: false,
-        message: "No user found",
-      });
-    }
-    res.status(200).send(data[0]);
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      message: "Error in getting user",
-      error: error.message,
-    });
-  }
-};
-
-// update user
-exports.updateUser = async (req, res) => {
-  try {
-    const userID = req.decodedUser.id;
+    const admin = req.decodedAdmin;
 
     // Extract data from the request body
-    const {
-      name,
-      account_phone,
-      brand,
-      city,
-      company,
-      contract_comptabilité,
-      contract_facturation,
-      post_code,
-      siret,
-    } = req.body;
-
-    // Fetch the current user data from the database
-    const [preData] = await db.query(`SELECT * FROM users WHERE id=?`, [
-      userID,
-    ]);
-
-    if (!preData) {
-      return res.status(404).send({
-        success: false,
-        message: "User not found",
-      });
-    }
+    const { first_name, last_name } = req.body;
 
     // Use data from preData if it is not present in req.body
     const updatedUserData = {
-      name: name || preData[0].name,
-      account_phone: account_phone || preData[0].account_phone,
-      brand: brand || preData[0].brand,
-      city: city || preData[0].city,
-      company: company || preData[0].company,
-      contract_comptabilité:
-        contract_comptabilité || preData[0].contract_comptabilité,
-      contract_facturation:
-        contract_facturation || preData[0].contract_facturation,
-      post_code: post_code || preData[0].post_code,
-      siret: siret || preData[0].siret,
+      fName: first_name || admin.first_name,
+      lName: last_name || admin.last_name,
     };
 
     // Update the user data in the database
     const [data] = await db.query(
-      `UPDATE users SET name=?, account_phone=?, brand=?, city=?, company=?, contract_comptabilité=?, contract_facturation=?, post_code=?, siret=? WHERE id = ?`,
-      [
-        updatedUserData.name,
-        updatedUserData.account_phone,
-        updatedUserData.brand,
-        updatedUserData.city,
-        updatedUserData.company,
-        updatedUserData.contract_comptabilité,
-        updatedUserData.contract_facturation,
-        updatedUserData.post_code,
-        updatedUserData.siret,
-        userID,
-      ]
+      `UPDATE admins SET first_name=?, last_name=? WHERE id = ?`,
+      [updatedUserData.fName, updatedUserData.lName, admin.id]
     );
 
     if (!data) {
       return res.status(500).send({
         success: false,
-        message: "Error in updating user",
+        message: "Error in updating Admin",
       });
     }
 
     res.status(200).send({
       success: true,
-      message: "User updated successfully",
+      message: "Admin updated successfully",
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error in updating user",
+      message: "Error in updating Admin",
       error: error.message,
     });
   }
 };
 
-// user password update
-exports.updateUserPassword = async (req, res) => {
+// admin password update
+exports.updateAdminPassword = async (req, res) => {
   try {
-    const userID = req.decodedUser.id;
+    const admin = req.decodedAdmin;
+    const userID = admin.id;
     const { old_password, new_password } = req.body;
 
     if (!old_password || !new_password) {
@@ -319,7 +163,7 @@ exports.updateUserPassword = async (req, res) => {
         message: "Old Password and New Password is requied in body",
       });
     }
-    const checkPassword = req.decodedUser?.password;
+    const checkPassword = admin?.password;
 
     const isMatch = await bcrypt.compare(old_password, checkPassword);
 
@@ -331,10 +175,10 @@ exports.updateUserPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(new_password, 10);
-    const [result] = await db.query(`UPDATE users SET password=? WHERE id =?`, [
-      hashedPassword,
-      userID,
-    ]);
+    const [result] = await db.query(
+      `UPDATE admins SET password=? WHERE id =?`,
+      [hashedPassword, userID]
+    );
 
     if (!result) {
       return res.status(403).json({
@@ -345,85 +189,353 @@ exports.updateUserPassword = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "User password updated successfully",
+      message: "Admin password updated successfully",
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error in password Update User",
+      message: "Error in password Update Admin",
       error: error.message,
     });
   }
 };
 
-// user status
-exports.userStatusUpdate = async (req, res) => {
+// update admin role_id
+exports.adminRoleIdUpdate = async (req, res) => {
   try {
-    const userId = req.params.id;
-    if (!userId) {
+    const adminID = req.params.id;
+    if (!adminID) {
       return res.status(404).send({
         success: false,
-        message: "User ID is required in params",
+        message: "Admin role ID is required in params",
       });
     }
 
-    const { status } = req.body;
-    if (!status) {
+    const { role_id } = req.body;
+    if (!role_id) {
       return res.status(404).send({
         success: false,
-        message: "status is requied in body",
+        message: "role_id is requied in body",
       });
     }
 
-    const [data] = await db.query(`SELECT * FROM users WHERE id=? `, [userId]);
+    if (role_id == 1) {
+      return res.status(403).send({
+        success: false,
+        message: "Super Admin role cannot be assigned to another admin",
+      });
+    }
+
+    const [data] = await db.query(`SELECT * FROM admins WHERE id=? `, [
+      adminID,
+    ]);
     if (!data || data.length === 0) {
       return res.status(404).send({
         success: false,
-        message: "No user found",
+        message: "No admins found",
       });
     }
 
-    await db.query(`UPDATE users SET status=?  WHERE id =?`, [status, userId]);
+    if (data[0].role_id == 1) {
+      return res.status(403).send({
+        success: false,
+        message: "Supper Admin role Not be changed",
+      });
+    }
+
+    await db.query(`UPDATE admins SET role_id=?  WHERE id =?`, [
+      role_id,
+      adminID,
+    ]);
 
     res.status(200).send({
       success: true,
-      message: "status updated successfully",
+      message: "role updated successfully",
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error in Update status ",
+      message: "Error in Update role",
       error: error.message,
     });
   }
 };
 
-// delete user
-exports.deleteUser = async (req, res) => {
+// get all Admin
+exports.getAllAdmins = async (req, res) => {
   try {
-    const userID = req.params.id;
-    if (!userID) {
+    const [rows] = await db.query(
+      `SELECT 
+        admins.id, 
+        admins.first_name, 
+        admins.last_name, 
+        admins.email, 
+        admins.password, 
+        roles.name AS role_name, 
+        permissions.section AS permission_section,
+        permissions.name AS permission_name
+      FROM admins
+      LEFT JOIN roles ON admins.role_id = roles.id
+      LEFT JOIN role_permissions ON roles.id = role_permissions.role_id
+      LEFT JOIN permissions ON role_permissions.permission_id = permissions.id`
+    );
+
+    if (!rows || rows.length === 0) {
       return res.status(404).send({
         success: false,
-        message: "User ID is reqiured in params",
+        message: "No admins found",
       });
     }
-    const [data] = await db.query(`SELECT * FROM users WHERE id=? `, [userID]);
-    if (!data || data.length === 0) {
-      return res.status(404).send({
-        success: false,
-        message: "No user found",
-      });
-    }
-    await db.query(`DELETE FROM users WHERE id=?`, [userID]);
+
+    const groupedAdmins = rows.reduce((acc, row) => {
+      const {
+        id,
+        first_name,
+        last_name,
+        email,
+        role_name,
+        password,
+        permission_section,
+        permission_name,
+      } = row;
+
+      if (!acc[id]) {
+        acc[id] = {
+          id,
+          first_name,
+          last_name,
+          email,
+          role_name,
+          password,
+          permissions: {},
+        };
+      }
+
+      if (!acc[id].permissions[permission_section]) {
+        acc[id].permissions[permission_section] = [];
+      }
+      acc[id].permissions[permission_section].push(permission_name);
+
+      return acc;
+    }, {});
+
+    const result = Object.values(groupedAdmins).map((admin) => ({
+      ...admin,
+      permissions: Object.keys(admin.permissions).map((section) => ({
+        section,
+        name: admin.permissions[section],
+      })),
+    }));
+
     res.status(200).send({
-      success: true,
-      message: "User Deleted Successfully",
+      success: false,
+      message: "Get All Admins",
+      data: result,
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error in Delete User",
+      message: "Error in getting admins",
+      error: error.message,
+    });
+  }
+};
+
+// get single admin by id
+exports.getSingleAdmin = async (req, res) => {
+  try {
+    const adminId = req.params.id;
+    if (!adminId) {
+      return res.status(404).send({
+        success: false,
+        message: "adminId is required in params",
+      });
+    }
+
+    const [rows] = await db.query(
+      `SELECT 
+        admins.id, 
+        admins.first_name, 
+        admins.last_name, 
+        admins.email, 
+        admins.password, 
+        roles.name AS role_name, 
+        permissions.section AS permission_section,
+        permissions.name AS permission_name
+      FROM admins
+      LEFT JOIN roles ON admins.role_id = roles.id
+      LEFT JOIN role_permissions ON roles.id = role_permissions.role_id
+      LEFT JOIN permissions ON role_permissions.permission_id = permissions.id
+      WHERE admins.id = ?`,
+      [adminId]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No admin found",
+      });
+    }
+
+    const groupedPermissions = rows.reduce((acc, row) => {
+      const { permission_section, permission_name } = row;
+      if (!acc[permission_section]) {
+        acc[permission_section] = [];
+      }
+      acc[permission_section].push(permission_name);
+      return acc;
+    }, {});
+
+    const result = {
+      id: rows[0].id,
+      first_name: rows[0].first_name,
+      last_name: rows[0].last_name,
+      email: rows[0].email,
+      role_name: rows[0].role_name,
+      password: rows[0].password,
+      permissions: Object.keys(groupedPermissions).map((section) => ({
+        section,
+        name: groupedPermissions[section],
+      })),
+    };
+
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in getting admin",
+      error: error.message,
+    });
+  }
+};
+
+// delete admin
+exports.deleteAdmin = async (req, res) => {
+  try {
+    const adminID = req.params.id;
+    if (!adminID) {
+      return res.status(404).send({
+        success: false,
+        message: "adminID is reqiured in params",
+      });
+    }
+
+    const [data] = await db.query(`SELECT * FROM admins WHERE id=? `, [
+      adminID,
+    ]);
+    if (!data || data.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Admin found",
+      });
+    }
+
+    if (data[0].role_id == 1) {
+      return res.status(403).send({
+        success: false,
+        message: "Supper Admin role Not be Deleted",
+      });
+    }
+
+    await db.query(`DELETE FROM admins WHERE id=?`, [adminID]);
+    res.status(200).send({
+      success: true,
+      message: "Admin Deleted Successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in Delete Admin",
+      error: error.message,
+    });
+  }
+};
+
+// get admins role
+exports.getAllRole = async (req, res) => {
+  try {
+    const [data] = await db.query(`SELECT * FROM roles`);
+    if (!data || data.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Role found",
+      });
+    }
+
+    res.status(200).send({
+      success: false,
+      message: "Get All role",
+      data: data,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in getting role",
+      error: error.message,
+    });
+  }
+};
+
+// get admins role with permission
+exports.getAllRoleWithPermission = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT 
+        roles.id AS role_id, 
+        roles.name AS role_name, 
+        permissions.section AS permission_section, 
+        permissions.name AS permission_name
+      FROM roles
+      LEFT JOIN role_permissions ON roles.id = role_permissions.role_id
+      LEFT JOIN permissions ON role_permissions.permission_id = permissions.id`
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No roles found",
+      });
+    }
+
+    const groupedRoles = rows.reduce((acc, row) => {
+      const { role_id, role_name, permission_section, permission_name } = row;
+
+      if (!acc[role_id]) {
+        acc[role_id] = {
+          role_id,
+          role_name,
+          permissions: {},
+        };
+      }
+
+      if (permission_section && permission_name) {
+        if (!acc[role_id].permissions[permission_section]) {
+          acc[role_id].permissions[permission_section] = [];
+        }
+        acc[role_id].permissions[permission_section].push(permission_name);
+      }
+
+      return acc;
+    }, {});
+
+    // Final result formatting
+    const result = Object.values(groupedRoles).map((role) => ({
+      ...role,
+      permissions: Object.keys(role.permissions).map((section) => ({
+        section,
+        name: role.permissions[section],
+      })),
+    }));
+
+    res.status(200).send({
+      success: true,
+      message: "Get all roles with permissions",
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in getting roles",
       error: error.message,
     });
   }

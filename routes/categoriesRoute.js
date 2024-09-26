@@ -8,6 +8,7 @@ const {
   getSingleCategory,
   getAllCategoryWithSub,
 } = require("../controllers/categoriesController");
+const verifyAdmin = require("../middleware/verifyAdmin");
 
 const router = express.Router();
 

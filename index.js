@@ -57,7 +57,7 @@ app.use("*", (req, res, next) => {
 // orders
 // user_delivery_address
 
-// admin
+//
 
 // users
 // products
@@ -66,6 +66,7 @@ app.use("*", (req, res, next) => {
 // app_logo
 // settings
 // post_code
+// admin
 
 // // Register User API
 // app.post('/register', (req, res) => {

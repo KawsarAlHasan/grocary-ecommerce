@@ -6,6 +6,7 @@ const {
   updatePrivacyTerms,
   getPrivacyTerms,
 } = require("../controllers/settingController");
+const verifyAdmin = require("../middleware/verifyAdmin");
 
 const router = express.Router();
 

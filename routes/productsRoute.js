@@ -10,6 +10,7 @@ const {
   deletePostCode,
   getAllPostCode,
 } = require("../controllers/productsController");
+const verifyAdmin = require("../middleware/verifyAdmin");
 
 const router = express.Router();
 

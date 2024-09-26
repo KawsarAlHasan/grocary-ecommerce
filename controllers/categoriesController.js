@@ -207,7 +207,7 @@ exports.updateCategory = async (req, res) => {
     if (!category_name) {
       return res.status(400).send({
         success: false,
-        message: "Please provide category_name & category_image field",
+        message: "Please provide category_name field",
       });
     }
 

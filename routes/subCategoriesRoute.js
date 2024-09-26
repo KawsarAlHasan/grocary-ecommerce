@@ -7,6 +7,7 @@ const {
   deleteSubCategory,
   getAllSubCategory,
 } = require("../controllers/subCategoriesController");
+const verifyAdmin = require("../middleware/verifyAdmin");
 
 const router = express.Router();
 
