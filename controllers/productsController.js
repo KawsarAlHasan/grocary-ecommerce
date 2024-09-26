@@ -1,11 +1,8 @@
 const db = require("../config/db");
-const path = require("path");
-const fs = require("fs");
 
 // create Products
 exports.createProducts = async (req, res) => {
   try {
-    const images = req.files;
     const {
       category_id,
       name,
@@ -20,6 +17,7 @@ exports.createProducts = async (req, res) => {
       selling_price,
       whole_price,
       discount_price,
+      images,
       variants,
       subcategories,
       tags,
@@ -79,18 +77,12 @@ exports.createProducts = async (req, res) => {
     const productId = result.insertId;
 
     // Insert images
-    if (images) {
-      const sqlImage = `
-      INSERT INTO product_images (product_id, image_url)
-      VALUES (?, ?)
-    `;
-      images.forEach((image) => {
-        const imageUrl = `/public/images/${image.filename}`;
+    if (images && images.length > 0) {
+      const imagesQuery =
+        "INSERT INTO product_images (product_id, image_url) VALUES ?";
+      const imagesValue = images.map((image) => [productId, image]);
 
-        db.query(sqlImage, [productId, imageUrl], (err) => {
-          if (err) return res.status(500).json({ error: err.message });
-        });
-      });
+      await db.query(imagesQuery, [imagesValue]);
     }
 
     // Insert subcategories if present
@@ -179,19 +171,23 @@ exports.getAllProducts = async (req, res) => {
     for (const product of products) {
       // Fetch images for the product
       const [images] = await db.query(
-        `SELECT COALESCE(image_url, '') AS image_url FROM product_images WHERE product_id = ?`,
+        `SELECT id, image_url FROM product_images WHERE product_id = ?`,
         [product.id]
       );
       product.images = images.length
-        ? images.map((image) => ({ image_url: image.image_url }))
+        ? images.map((image) => ({
+            image_id: image.id,
+            image_url: image.image_url,
+          }))
         : [];
 
       // Fetch variants for the product
       const [variants] = await db.query(
-        `SELECT variant_name, variant_value FROM product_variants WHERE product_id = ?`,
+        `SELECT id, variant_name, variant_value FROM product_variants WHERE product_id = ?`,
         [product.id]
       );
       product.variants = variants.map((variant) => ({
+        variant_id: variant.id,
         variant_name: variant.variant_name,
         variant_value: variant.variant_value,
       }));
@@ -312,6 +308,7 @@ exports.updateProduct = async (req, res) => {
       selling_price,
       whole_price,
       discount_price,
+      images,
       variants,
       subcategories,
       tags,
@@ -387,6 +384,20 @@ exports.updateProduct = async (req, res) => {
       ]
     );
 
+    // Update images
+    if (images && images.length > 0) {
+      // Delete existing images
+      await db.query("DELETE FROM product_images WHERE product_id = ?", [
+        productId,
+      ]);
+
+      const imagesQuery =
+        "INSERT INTO product_images (product_id, image_url) VALUES ?";
+      const imagesValue = images.map((image) => [productId, image]);
+
+      await db.query(imagesQuery, [imagesValue]);
+    }
+
     // Update subcategories
     if (subcategories && subcategories.length > 0) {
       // Delete existing subcategories
@@ -450,61 +461,6 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// image update
-exports.updateProductImages = async (req, res) => {
-  try {
-    const productId = req.params.id;
-    const images = req.files;
-
-    // Check if the product exists
-    const [product] = await db.query("SELECT * FROM products WHERE id = ?", [
-      productId,
-    ]);
-
-    if (product.length === 0) {
-      return res.status(404).send({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    // Delete existing images
-    await db.query("DELETE FROM product_images WHERE product_id = ?", [
-      productId,
-    ]);
-
-    // Insert new images
-    if (images && images.length > 0) {
-      const sqlImage = `
-        INSERT INTO product_images (product_id, image_url)
-        VALUES (?, ?)
-      `;
-      images.forEach((image) => {
-        const imageUrl = `/public/images/${image.filename}`;
-        db.query(sqlImage, [productId, imageUrl], (err) => {
-          if (err) return res.status(500).json({ error: err.message });
-        });
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "No images provided for update",
-      });
-    }
-
-    res.status(200).send({
-      success: true,
-      message: "Product images updated successfully",
-    });
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      message: "An error occurred while updating the product images",
-      error: error.message,
-    });
-  }
-};
-
 // delete product
 exports.deleteProduct = async (req, res) => {
   try {
@@ -531,7 +487,7 @@ exports.deleteProduct = async (req, res) => {
     }
 
     // Fetch product images before deleting them
-    const [productImages] = await db.query(
+    await db.query(
       `SELECT image_url FROM product_images WHERE product_id = ?`,
       [id]
     );
@@ -560,27 +516,6 @@ exports.deleteProduct = async (req, res) => {
         message: "Failed to delete Product",
       });
     }
-
-    // Now delete the image files from the server
-    productImages.forEach((image) => {
-      // Correctly construct the path to the 'public/images' directory
-      const imagePath = path.resolve(
-        __dirname,
-        "../public/images",
-        path.basename(image.image_url)
-      );
-
-      // Check if file exists before attempting to delete
-      fs.access(imagePath, fs.constants.F_OK, (err) => {
-        if (!err) {
-          // If file exists, proceed to delete it
-          fs.unlink(imagePath, () => {
-            // No logging required, silently handle deletion
-          });
-        }
-        // If file does not exist, simply continue without logging
-      });
-    });
 
     // Send success response
     res.status(200).send({

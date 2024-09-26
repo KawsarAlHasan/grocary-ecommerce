@@ -3,20 +3,13 @@ const db = require("../config/db");
 // create Subcategory
 exports.createSubCategory = async (req, res) => {
   try {
-    const { main_cat_id, name } = req.body;
-
+    const { main_cat_id, name, image } = req.body;
     // Check if category_name is provided
-    if (!main_cat_id || !name) {
+    if (!main_cat_id || !name || !image) {
       return res.status(400).send({
         success: false,
-        message: "Please provide main_cat_id & name field",
+        message: "Please provide main_cat_id, name & image field",
       });
-    }
-
-    const images = req.file;
-    let image = "";
-    if (images && images.path) {
-      image = `/public/images/${images.filename}`;
     }
 
     // Insert category into the database
@@ -42,6 +35,31 @@ exports.createSubCategory = async (req, res) => {
     res.status(500).send({
       success: false,
       message: "An error occurred while inserting the Sub category",
+      error: error.message,
+    });
+  }
+};
+
+// get all sub category
+exports.getAllSubCategory = async (req, res) => {
+  try {
+    const [data] = await db.query("SELECT * FROM sub_categories");
+    if (!data || data.length == 0) {
+      return res.status(200).send({
+        success: true,
+        message: "No sub Category found",
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Get All sub Category",
+      data: data,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in Get All sub Category",
       error: error.message,
     });
   }
@@ -96,6 +114,16 @@ exports.updateSubCategory = async (req, res) => {
       });
     }
 
+    const { name, image } = req.body;
+
+    // Check if name is provided
+    if (!name) {
+      return res.status(400).send({
+        success: false,
+        message: "Please provide name field",
+      });
+    }
+
     // Check if sub-category exists
     const [existingSubCategory] = await db.query(
       "SELECT * FROM sub_categories WHERE id = ?",
@@ -109,30 +137,13 @@ exports.updateSubCategory = async (req, res) => {
       });
     }
 
-    const { name } = req.body;
-
-    // Check if name is provided
-    if (!name) {
-      return res.status(400).send({
-        success: false,
-        message: "Please provide name field",
-      });
-    }
-
-    const images = req.file;
-
     // Set default image from the existing sub-category
-    let image = existingSubCategory[0]?.image;
-
-    // If new image is provided, update the image path
-    if (images && images.path) {
-      image = `/public/images/${images.filename}`;
-    }
+    let images = image ? image : existingSubCategory[0]?.image;
 
     // Execute the update query
     const [result] = await db.query(
       "UPDATE sub_categories SET name = ?, image = ? WHERE id = ?",
-      [name, image, id]
+      [name, images, id]
     );
 
     // Check if the sub-category was updated successfully

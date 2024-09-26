@@ -1,20 +1,16 @@
 const db = require("../config/db");
-const path = require("path");
-const fs = require("fs");
 
 // update app logo
 exports.updateAppLogo = async (req, res) => {
   try {
-    const images = req.file;
+    const { logo } = req.body;
     // Check if the logo file is provided
-    if (!images || !images.path) {
+    if (!logo) {
       return res.status(400).send({
         success: false,
         message: "Logo is required",
       });
     }
-
-    const logo = `/public/images/${images.filename}`;
 
     // Execute the update query
     const [result] = await db.query(
@@ -36,7 +32,6 @@ exports.updateAppLogo = async (req, res) => {
       message: "Logo updated successfully",
     });
   } catch (error) {
-    console.error("Error updating logo:", error); // Log the actual error
     return res.status(500).send({
       success: false,
       message: "An error occurred while updating the logo",

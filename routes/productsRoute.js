@@ -1,13 +1,11 @@
 const express = require("express");
 
-const uploadImage = require("../middleware/uploaderImage");
 const {
   createProducts,
   getAllProducts,
   getSingleProduct,
   deleteProduct,
   updateProduct,
-  updateProductImages,
   createPostCode,
   deletePostCode,
   getAllPostCode,
@@ -15,15 +13,10 @@ const {
 
 const router = express.Router();
 
-router.post("/create", uploadImage.array("image_url", 10), createProducts);
+router.post("/create", createProducts);
 router.get("/all", getAllProducts);
 
 router.put("/update/:id", updateProduct);
-router.put(
-  "/update-images/:id",
-  uploadImage.array("image_url", 10),
-  updateProductImages
-);
 
 router.delete("/delete/:id", deleteProduct);
 

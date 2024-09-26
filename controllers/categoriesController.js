@@ -3,20 +3,14 @@ const db = require("../config/db");
 // create category
 exports.createCategory = async (req, res) => {
   try {
-    const { category_name } = req.body;
+    const { category_name, category_image } = req.body;
 
     // Check if category_name is provided
-    if (!category_name) {
+    if (!category_name || !category_image) {
       return res.status(400).send({
         success: false,
-        message: "Please provide category_name field",
+        message: "Please provide category_name & category_image field",
       });
-    }
-
-    const images = req.file;
-    let category_image = "";
-    if (images && images.path) {
-      category_image = `/public/images/${images.filename}`;
     }
 
     // Insert category into the database
@@ -208,30 +202,28 @@ exports.updateCategory = async (req, res) => {
       });
     }
 
-    const { category_name } = req.body;
+    const { category_name, category_image } = req.body;
     // Check if category_name is provided
     if (!category_name) {
       return res.status(400).send({
         success: false,
-        message: "Please provide category_name field",
+        message: "Please provide category_name & category_image field",
       });
     }
 
-    const images = req.file;
     const [categoryImage] = await db.query(
       `SELECT category_image FROM categories WHERE id=?`,
       [id]
     );
 
-    let category_image = categoryImage[0]?.category_image;
-    if (images && images.path) {
-      category_image = `/public/images/${images.filename}`;
-    }
+    let category_images = category_image
+      ? category_image
+      : categoryImage[0]?.category_image;
 
     // Execute the update query
     const [result] = await db.query(
       "UPDATE categories SET category_name = ?, category_image = ? WHERE id = ?",
-      [category_name, category_image, id]
+      [category_name, category_images, id]
     );
 
     // Check if the category was updated successfully

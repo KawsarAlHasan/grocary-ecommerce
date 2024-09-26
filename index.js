@@ -3,7 +3,6 @@ const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const mySqlPool = require("./config/db");
-const path = require("path");
 const app = express();
 dotenv.config();
 
@@ -19,8 +18,6 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 // Serve static files
-app.use("/public", express.static(path.join(__dirname, "public")));
-
 app.use("/api/v1/admins", require("./routes/adminRoute"));
 app.use("/api/v1/user", require("./routes/usersRoute"));
 app.use("/api/v1/category", require("./routes/categoriesRoute"));

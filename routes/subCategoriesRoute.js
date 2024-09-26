@@ -1,18 +1,19 @@
 const express = require("express");
 
-const uploadImage = require("../middleware/uploaderImage");
 const {
   createSubCategory,
   getSingleSubCategory,
   updateSubCategory,
   deleteSubCategory,
+  getAllSubCategory,
 } = require("../controllers/subCategoriesController");
 
 const router = express.Router();
 
-router.post("/create", uploadImage.single("image"), createSubCategory);
+router.post("/create", createSubCategory);
+router.get("/all", getAllSubCategory);
 router.get("/:id", getSingleSubCategory);
-router.put("/update/:id", uploadImage.single("image"), updateSubCategory);
+router.put("/update/:id", updateSubCategory);
 router.delete("/delete/:id", deleteSubCategory);
 
 module.exports = router;

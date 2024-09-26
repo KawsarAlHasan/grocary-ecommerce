@@ -1,6 +1,5 @@
 const express = require("express");
 
-const uploadImage = require("../middleware/uploaderImage");
 const {
   updateAppLogo,
   getAppLogo,
@@ -10,7 +9,7 @@ const {
 
 const router = express.Router();
 
-router.put("/app-logo", uploadImage.single("logo"), updateAppLogo);
+router.put("/app-logo", updateAppLogo);
 router.get("/app-logo", getAppLogo);
 
 router.put("/privacy", updatePrivacyTerms);
