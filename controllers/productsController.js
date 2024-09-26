@@ -24,25 +24,10 @@ exports.createProducts = async (req, res) => {
     } = req.body;
 
     // Check if name is provided
-    if (
-      !category_id ||
-      !name ||
-      !product_type ||
-      !unit ||
-      !long_description ||
-      !short_description ||
-      !tax ||
-      !country ||
-      !purchase_price ||
-      !regular_price ||
-      !selling_price ||
-      !whole_price ||
-      !discount_price
-    ) {
+    if (!category_id) {
       return res.status(400).send({
         success: false,
-        message:
-          "Please provide category_id, name, product_type, unit, long_description, short_description, tax, country, purchase_price, regular_price, selling_price, whole_price and discount_price field",
+        message: "Please provide category_id is required in body",
       });
     }
 
@@ -51,18 +36,18 @@ exports.createProducts = async (req, res) => {
       "INSERT INTO products (category_id, name, product_type, unit, long_description, short_description, tax, country, purchase_price, regular_price, selling_price, whole_price, discount_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         category_id,
-        name,
-        product_type,
-        unit,
-        long_description,
-        short_description,
-        tax,
-        country,
-        purchase_price,
-        regular_price,
-        selling_price,
-        whole_price,
-        discount_price,
+        name || null,
+        product_type || null,
+        unit || null,
+        long_description || null,
+        short_description || null,
+        tax || null,
+        country || null,
+        purchase_price || null,
+        regular_price || null,
+        selling_price || null,
+        whole_price || null,
+        discount_price || null,
       ]
     );
 
@@ -314,29 +299,6 @@ exports.updateProduct = async (req, res) => {
       tags,
     } = req.body;
 
-    // Check if name is provided
-    if (
-      !category_id ||
-      !name ||
-      !product_type ||
-      !unit ||
-      !long_description ||
-      !short_description ||
-      !tax ||
-      !country ||
-      !purchase_price ||
-      !regular_price ||
-      !selling_price ||
-      !whole_price ||
-      !discount_price
-    ) {
-      return res.status(400).send({
-        success: false,
-        message:
-          "Please provide category_id, name, product_type, unit, long_description, short_description, tax, country, purchase_price, regular_price, selling_price, whole_price and discount_price field",
-      });
-    }
-
     // Check if the product exists
     const [product] = await db.query("SELECT * FROM products WHERE id = ?", [
       productId,
@@ -367,19 +329,19 @@ exports.updateProduct = async (req, res) => {
         discount_price = ?
       WHERE id = ?`,
       [
-        category_id,
-        name,
-        product_type,
-        unit,
-        long_description,
-        short_description,
-        tax,
-        country,
-        purchase_price,
-        regular_price,
-        selling_price,
-        whole_price,
-        discount_price,
+        category_id || product[0].category_id,
+        name || product[0].name,
+        product_type || product[0].product_type,
+        unit || product[0].unit,
+        long_description || product[0].long_description,
+        short_description || product[0].short_description,
+        tax || product[0].tax,
+        country || product[0].country,
+        purchase_price || product[0].purchase_price,
+        regular_price || product[0].regular_price,
+        selling_price || product[0].selling_price,
+        whole_price || product[0].whole_price,
+        discount_price || product[0].discount_price,
         productId,
       ]
     );

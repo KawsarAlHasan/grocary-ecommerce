@@ -68,18 +68,6 @@ app.use("*", (req, res, next) => {
 // post_code
 // admin
 
-// // Register User API
-// app.post('/register', (req, res) => {
-//     const { first_name, last_name, email, password, role_id } = req.body;
-//     const hashedPassword = bcrypt.hashSync(password, 8);
-//     db.query('INSERT INTO users (first_name, last_name, email, password, role_id) VALUES (?, ?, ?, ?, ?)',
-//         [first_name, last_name, email, hashedPassword, role_id],
-//         (err, result) => {
-//             if (err) return res.status(500).send(err);
-//             res.status(201).send('User created');
-//         });
-// });
-
 // // Middleware to check role permissions
 // const checkPermissions = (requiredPermissions) => {
 //     return (req, res, next) => {

@@ -22,24 +22,11 @@ exports.signUpUser = async (req, res) => {
     } = req.body;
 
     // Check if all required fields are provided
-    if (
-      !name ||
-      !email ||
-      !password ||
-      !account_email ||
-      !account_phone ||
-      !account_type ||
-      !brand ||
-      !city ||
-      !company ||
-      !contract_comptabilité ||
-      !contract_facturation ||
-      !post_code ||
-      !siret
-    ) {
+    if (!name || !email || !password || !account_type) {
       return res.status(400).send({
         success: false,
-        message: "Please provide all required fields",
+        message:
+          "Please provide name, email, password & account_type required fields",
       });
     }
 
@@ -53,16 +40,16 @@ exports.signUpUser = async (req, res) => {
         name,
         email,
         hashedPassword,
-        account_email,
-        account_phone,
+        account_email || null,
+        account_phone || null,
         account_type,
-        brand,
-        city,
-        company,
-        contract_comptabilité,
-        contract_facturation,
-        post_code,
-        siret,
+        brand || null,
+        city || null,
+        company || null,
+        contract_comptabilité || null,
+        contract_facturation || null,
+        post_code || null,
+        siret || null,
       ]
     );
 
