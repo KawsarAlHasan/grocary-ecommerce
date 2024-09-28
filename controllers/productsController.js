@@ -123,22 +123,7 @@ exports.getAllProducts = async (req, res) => {
     // Query to get all products along with their images, subcategories, variants, and tags
     const productQuery = `
       SELECT 
-        p.id,  
-        p.name,  
-        p.product_type,  
-        p.unit,  
-        p.short_description,  
-        p.long_description,  
-        p.tax,  
-        p.country,  
-        p.is_stock,  
-        p.purchase_price,  
-        p.regular_price,  
-        p.selling_price,  
-        p.whole_price,  
-        p.discount_price,  
-        p.created_at,  
-        p.updated_at,  
+        p.*,  
         c.category_image, 
         c.category_name
       FROM products p

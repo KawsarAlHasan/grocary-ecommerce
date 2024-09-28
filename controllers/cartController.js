@@ -37,116 +37,28 @@ exports.addCart = async (req, res) => {
   }
 };
 
-// get all Users
-exports.getAllUsers = async (req, res) => {
+// get All Cart Products
+exports.getAllCartProducts = async (req, res) => {
   try {
-    let { page, limit, name, email, id } = req.query;
-
-    // Default pagination values
-    page = parseInt(page) || 1; // Default page is 1
-    limit = parseInt(limit) || 20; // Default limit is 20
-    const offset = (page - 1) * limit; // Calculate offset for pagination
-
-    // Initialize SQL query and parameters array
-    let sqlQuery = "SELECT * FROM users WHERE 1=1"; // 1=1 makes appending conditions easier
-    const queryParams = [];
-
-    // Add filters for name, email, and id if provided
-    if (name) {
-      sqlQuery += " AND name LIKE ?";
-      queryParams.push(`%${name}%`); // Using LIKE for partial match
-    }
-
-    if (email) {
-      sqlQuery += " AND email LIKE ?";
-      queryParams.push(`%${email}%`);
-    }
-
-    if (id) {
-      sqlQuery += " AND id = ?";
-      queryParams.push(id);
-    }
-
-    // Add pagination to the query
-    sqlQuery += " LIMIT ? OFFSET ?";
-    queryParams.push(limit, offset);
-
-    // Execute the query with filters and pagination
-    const [data] = await db.query(sqlQuery, queryParams);
-
+    const [data] = await db.query(`SELECT * FROM Cart`);
     if (!data || data.length === 0) {
-      return res.status(200).send({
-        success: true,
-        message: "No users found",
-        data: [],
+      return res.status(404).send({
+        success: false,
+        message: "No Product found",
       });
     }
 
-    // Get total count of users for pagination info (with the same filters)
-    let countQuery = "SELECT COUNT(*) as count FROM users WHERE 1=1";
-    const countParams = [];
-
-    // Add the same filters for total count query
-    if (name) {
-      countQuery += " AND name LIKE ?";
-      countParams.push(`%${name}%`);
-    }
-
-    if (email) {
-      countQuery += " AND email LIKE ?";
-      countParams.push(`%${email}%`);
-    }
-
-    if (id) {
-      countQuery += " AND id = ?";
-      countParams.push(id);
-    }
-
-    const [totalUsersCount] = await db.query(countQuery, countParams);
-    const totalUsers = totalUsersCount[0].count;
-
-    // Send response with users data and pagination info
     res.status(200).send({
       success: true,
-      message: "All Users",
-      totalUsers: totalUsers,
-      currentPage: page,
-      totalPages: Math.ceil(totalUsers / limit),
+      message: "Get Product in cart",
+      totalProducts: data.length,
       data: data,
     });
   } catch (error) {
     // Error handling
     res.status(500).send({
       success: false,
-      message: "Error in Get All Users",
-      error: error.message,
-    });
-  }
-};
-
-// get single user by id
-exports.getSingleUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    if (!userId) {
-      return res.status(404).send({
-        success: false,
-        message: "User ID is required in params",
-      });
-    }
-
-    const [data] = await db.query(`SELECT * FROM users WHERE id=? `, [userId]);
-    if (!data || data.length === 0) {
-      return res.status(404).send({
-        success: false,
-        message: "No user found",
-      });
-    }
-    res.status(200).send(data[0]);
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      message: "Error in getting user",
+      message: "Error in Get All Product in cart",
       error: error.message,
     });
   }
