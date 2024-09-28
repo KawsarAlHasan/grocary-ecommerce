@@ -137,6 +137,8 @@ exports.getAllProducts = async (req, res) => {
         p.selling_price,  
         p.whole_price,  
         p.discount_price,  
+        p.created_at,  
+        p.updated_at,  
         c.category_image, 
         c.category_name
       FROM products p

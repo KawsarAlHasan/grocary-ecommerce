@@ -24,6 +24,7 @@ app.use("/api/v1/category", require("./routes/categoriesRoute"));
 app.use("/api/v1/subcategory", require("./routes/subCategoriesRoute"));
 app.use("/api/v1/product", require("./routes/productsRoute"));
 app.use("/api/v1/settings", require("./routes/settingRoute"));
+app.use("/api/v1/cart", require("./routes/cartRoutes"));
 
 const port = process.env.PORT || 8080;
 
@@ -52,12 +53,11 @@ app.use("*", (req, res, next) => {
   });
 });
 
-// cart
 // favorite
 // orders
 // user_delivery_address
 
-//
+// cart
 
 // users
 // products
