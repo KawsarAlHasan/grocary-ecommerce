@@ -127,7 +127,7 @@ exports.getAllProducts = async (req, res) => {
         c.category_image, 
         c.category_name
       FROM products p
-      JOIN categories c ON p.category_id = c.id
+      LEFT JOIN categories c ON p.category_id = c.id
     `;
 
     const [products] = await db.query(productQuery);
@@ -139,8 +139,8 @@ exports.getAllProducts = async (req, res) => {
       });
     }
 
-    // Loop through each product to add images, variants, subcategories, and tags
-    for (const product of products) {
+    // Loop through each product and process images, variants, subcategories, and tags in parallel
+    const productPromises = products.map(async (product) => {
       // Fetch images for the product
       const [images] = await db.query(
         `SELECT id, image_url FROM product_images WHERE product_id = ?`,
@@ -166,12 +166,31 @@ exports.getAllProducts = async (req, res) => {
 
       // Fetch subcategories for the product
       const [subcategories] = await db.query(
-        `SELECT sub_category_id FROM product_sub_categories WHERE product_id = ?`,
+        `SELECT * FROM product_sub_categories WHERE product_id = ?`,
         [product.id]
       );
-      product.subcategories = subcategories.map(
-        (subCategory) => subCategory.sub_category_id
-      );
+
+      // Map through subcategories and fetch detailed subcategory info from sub_categories table
+      const subcategoryPromises = subcategories.map(async (subCategory) => {
+        const [subcategoryDetails] = await db.query(
+          `SELECT id, image, name
+           FROM sub_categories 
+           WHERE id = ?`,
+          [subCategory.sub_category_id]
+        );
+
+        // If subcategory details are found, map them
+        return subcategoryDetails.length
+          ? {
+              subCategory_id: subcategoryDetails[0].id,
+              subCategory_image: subcategoryDetails[0].image,
+              subCategory_name: subcategoryDetails[0].name,
+            }
+          : null;
+      });
+
+      // Resolve all subcategory details in parallel
+      product.subcategories = await Promise.all(subcategoryPromises);
 
       // Fetch tags for the product
       const [tags] = await db.query(
@@ -179,14 +198,19 @@ exports.getAllProducts = async (req, res) => {
         [product.id]
       );
       product.tags = tags.map((tag) => tag.tag_name);
-    }
+
+      return product;
+    });
+
+    // Resolve all product data
+    const allProducts = await Promise.all(productPromises);
 
     // Send the product data
     res.status(200).send({
       success: true,
       message: "Products retrieved successfully",
-      totalProducts: products.length,
-      data: products,
+      totalProducts: allProducts.length,
+      data: allProducts,
     });
   } catch (error) {
     res.status(500).send({
@@ -234,17 +258,41 @@ exports.getSingleProduct = async (req, res) => {
       [id]
     );
 
+    // Fetch detailed subcategory information for each subcategory
+    const subcategoryPromises = subcategories.map(async (subCategory) => {
+      const [subcategoryDetails] = await db.query(
+        `SELECT id, image, name FROM sub_categories WHERE id = ?`,
+        [subCategory.sub_category_id]
+      );
+
+      // Map the subcategory details, or return null if not found
+      return subcategoryDetails.length
+        ? {
+            subCategory_id: subcategoryDetails[0].id,
+            subCategory_image: subcategoryDetails[0].image,
+            subCategory_name: subcategoryDetails[0].name,
+          }
+        : null;
+    });
+
+    // Wait for all subcategory details to be fetched
+    const detailedSubcategories = await Promise.all(subcategoryPromises);
+
+    // Filter out any null values (in case some subcategories were not found)
+    const filteredSubcategories = detailedSubcategories.filter(Boolean);
+
     // Fetch tags for the product
     const [tags] = await db.query(
       `SELECT tag_name FROM product_tags WHERE product_id = ?`,
       [id]
     );
 
+    // Assemble the final product object with all details
     const product = {
       ...data[0],
       images,
       variants,
-      subcategories,
+      subcategories: filteredSubcategories,
       tags,
     };
 
