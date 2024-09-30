@@ -109,7 +109,7 @@ exports.updateDeliveryAddress = async (req, res) => {
     if (!data && data.length == 0) {
       return res.status(400).send({
         success: true,
-        message: "",
+        message: "No Data Found",
       });
     }
 
@@ -131,23 +131,23 @@ exports.updateDeliveryAddress = async (req, res) => {
       ]
     );
 
-    // Check if the category was updated successfully
+    // Check if the Delivery address was updated successfully
     if (result.affectedRows === 0) {
       return res.status(404).send({
         success: false,
-        message: "Category not found or no changes made",
+        message: "Delivery address not found or no changes made",
       });
     }
 
     // Success response
     res.status(200).send({
       success: true,
-      message: "Category updated successfully",
+      message: "Delivery address updated successfully",
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error updating Category",
+      message: "Error updating Delivery address",
       error: error.message,
     });
   }

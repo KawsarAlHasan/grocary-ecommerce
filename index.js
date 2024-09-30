@@ -39,26 +39,28 @@ app.post("/webhook", async (req, res) => {
     .update(payload)
     .digest("hex");
 
-  if (hash === signature) {
-    const reqBody = JSON.stringify(req.body);
+  const reqBody = JSON.stringify(req.body);
 
-    try {
-      // MySQL query using the pool
+  try {
+    // MySQL query using the pool
 
-      const [result] = await mySqlPool.execute(
-        "INSERT INTO miziom (reqBody) VALUES (?)",
-        [reqBody]
-      );
-      console.log("Data inserted successfully:", result);
+    const [result] = await mySqlPool.execute(
+      "INSERT INTO miziom (reqBody) VALUES (?)",
+      [reqBody]
+    );
+    console.log("Data inserted successfully:", result);
 
-      res.status(200).send("Webhook verified and data inserted into MySQL");
-    } catch (error) {
-      console.error("MySQL error:", error);
-      res.status(500).send("Database error");
-    }
-  } else {
-    res.status(400).send("Invalid signature");
+    res.status(200).send("Webhook verified and data inserted into MySQL");
+  } catch (error) {
+    console.error("MySQL error:", error);
+    res.status(500).send("Database error");
   }
+
+  // if (hash === signature) {
+
+  // } else {
+  //   res.status(400).send("Invalid signature");
+  // }
 });
 
 // pactice end
@@ -92,7 +94,7 @@ app.use("*", (req, res, next) => {
 
 // orders
 
-// user_delivery_address
+//
 
 // users
 // products
@@ -104,6 +106,7 @@ app.use("*", (req, res, next) => {
 // admin
 // cart
 // favorite
+// user_delivery_address
 
 // // Middleware to check role permissions
 // const checkPermissions = (requiredPermissions) => {
