@@ -25,6 +25,7 @@ app.use("/api/v1/subcategory", require("./routes/subCategoriesRoute"));
 app.use("/api/v1/product", require("./routes/productsRoute"));
 app.use("/api/v1/settings", require("./routes/settingRoute"));
 app.use("/api/v1/cart", require("./routes/cartRoutes"));
+app.use("/api/v1/favorite", require("./routes/favoriteRoute"));
 
 const port = process.env.PORT || 8080;
 
@@ -53,11 +54,9 @@ app.use("*", (req, res, next) => {
   });
 });
 
-// favorite
 // orders
-// user_delivery_address
 
-// cart
+// user_delivery_address
 
 // users
 // products
@@ -67,6 +66,8 @@ app.use("*", (req, res, next) => {
 // settings
 // post_code
 // admin
+// cart
+// favorite
 
 // // Middleware to check role permissions
 // const checkPermissions = (requiredPermissions) => {
