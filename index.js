@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const mySqlPool = require("./config/db");
 const app = express();
+const crypto = require("crypto");
 dotenv.config();
 
 const globalCorsOptions = {
@@ -57,7 +58,22 @@ app.post("/webhook", async (req, res) => {
   }
 
   // if (hash === signature) {
+  //   const reqBody = JSON.stringify(req.body);
 
+  //   try {
+  //     // MySQL query using the pool
+
+  //     const [result] = await mySqlPool.execute(
+  //       "INSERT INTO miziom (reqBody) VALUES (?)",
+  //       [reqBody]
+  //     );
+  //     console.log("Data inserted successfully:", result);
+
+  //     res.status(200).send("Webhook verified and data inserted into MySQL");
+  //   } catch (error) {
+  //     console.error("MySQL error:", error);
+  //     res.status(500).send("Database error");
+  //   }
   // } else {
   //   res.status(400).send("Invalid signature");
   // }
