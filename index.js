@@ -27,6 +27,7 @@ app.use("/api/v1/product", require("./routes/productsRoute"));
 app.use("/api/v1/settings", require("./routes/settingRoute"));
 app.use("/api/v1/cart", require("./routes/cartRoutes"));
 app.use("/api/v1/favorite", require("./routes/favoriteRoute"));
+app.use("/api/v1/order", require("./routes/orderRoute"));
 app.use("/api/v1/delivery-addresss", require("./routes/deliveryAddressRoute"));
 
 // pactice start
@@ -109,8 +110,6 @@ app.use("*", (req, res, next) => {
 });
 
 // orders
-
-//
 
 // users
 // products

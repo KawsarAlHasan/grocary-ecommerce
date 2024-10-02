@@ -1,0 +1,480 @@
+const db = require("../config/db"); // Ensure db is correctly configured for your MySQL connection
+
+// Create order
+exports.createOrder = async (req, res) => {
+  const connection = await db.getConnection(); // Assume db.getConnection() returns a MySQL connection instance
+
+  try {
+    const user_id = req.decodedUser.id; // Assuming you're using JWT for authentication
+    const {
+      company,
+      delivery_date,
+      payment_method,
+      sub_total,
+      tax,
+      tax_amount,
+      delivery_fee,
+      total,
+      user_delivery_address_id,
+      products,
+    } = req.body;
+
+    // Start transaction
+    await connection.beginTransaction();
+
+    // Insert into `orders` table
+    const [orderResult] = await connection.execute(
+      `INSERT INTO orders (company, created_by, delivery_date, order_status, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id)
+       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        company,
+        user_id,
+        delivery_date,
+        payment_method,
+        sub_total,
+        tax,
+        tax_amount,
+        delivery_fee,
+        total,
+        user_delivery_address_id,
+      ]
+    );
+
+    const orderId = orderResult.insertId; // Get the inserted order ID
+
+    // Insert products into `order_products` table
+    for (let product of products) {
+      const { product_id, quantity, price } = product;
+      await connection.execute(
+        `INSERT INTO order_products (order_id, product_id, quantity, price)
+         VALUES (?, ?, ?, ?)`,
+        [orderId, product_id, quantity, price]
+      );
+    }
+
+    // Commit transaction
+    await connection.commit();
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Order created successfully",
+      order_id: orderId,
+    });
+  } catch (error) {
+    // Rollback transaction in case of error
+    await connection.rollback();
+
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while creating the order",
+      error: error.message,
+    });
+  } finally {
+    // Release the connection back to the pool
+    connection.release();
+  }
+};
+
+// Get order by ID with products, images, and delivery address
+exports.getOrderById = async (req, res) => {
+  try {
+    const order_id = req.params.id; // Get the order ID from the request parameters
+
+    // Fetch order details from the `orders` table and join with `user_delivery_address`
+    const [orderResult] = await db.execute(
+      `SELECT 
+          o.*, 
+          uda.phone, 
+          uda.contact, 
+          uda.address, 
+          uda.address_type, 
+          uda.city, 
+          uda.post_code, 
+          uda.message
+       FROM orders o
+       LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+       WHERE o.id = ?`,
+      [order_id]
+    );
+
+    // Check if order exists
+    if (orderResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    const order = orderResult[0]; // Order information
+
+    // Organize delivery address data
+    const userDeliveryAddress = {
+      phone: order.phone,
+      contact: order.contact,
+      address: order.address,
+      address_type: order.address_type,
+      city: order.city,
+      post_code: order.post_code,
+      message: order.message,
+    };
+
+    // Remove address fields from the `order` object to avoid redundancy
+    delete order.phone;
+    delete order.contact;
+    delete order.address;
+    delete order.address_type;
+    delete order.city;
+    delete order.post_code;
+    delete order.message;
+
+    // Fetch products associated with the order along with their images
+    const [productsResult] = await db.execute(
+      `SELECT 
+          op.product_id, 
+          p.name, 
+          op.quantity, 
+          op.price, 
+          pi.id as image_id, 
+          pi.image_url 
+       FROM order_products op 
+       LEFT JOIN products p ON p.id = op.product_id 
+       LEFT JOIN product_images pi ON pi.product_id = op.product_id 
+       WHERE op.order_id = ?`,
+      [order_id]
+    );
+
+    // Organize products by combining the images
+    const productsMap = {};
+
+    productsResult.forEach((product) => {
+      if (!productsMap[product.product_id]) {
+        productsMap[product.product_id] = {
+          product_id: product.product_id,
+          name: product.name,
+          quantity: product.quantity,
+          price: product.price,
+          images: [],
+        };
+      }
+
+      if (product.image_id) {
+        productsMap[product.product_id].images.push({
+          id: product.image_id,
+          image_url: product.image_url,
+        });
+      }
+    });
+
+    const products = Object.values(productsMap);
+
+    // Add products and delivery address to the order object
+    order.products = products;
+    order.user_delivery_address = userDeliveryAddress;
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the order",
+      error: error.message,
+    });
+  }
+};
+
+exports.getAllOrders = async (req, res) => {
+  try {
+    // Capture the order_status from query parameters
+    const { order_status } = req.query;
+
+    // SQL query for fetching all orders with an optional order_status filter
+    let ordersQuery = `
+      SELECT 
+        o.*, 
+        uda.phone, 
+        uda.contact, 
+        uda.address, 
+        uda.address_type, 
+        uda.city, 
+        uda.post_code, 
+        uda.message
+      FROM orders o
+      LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+    `;
+
+    // Add WHERE clause if order_status filter is provided
+    if (order_status) {
+      ordersQuery += ` WHERE o.order_status = ?`;
+    }
+
+    // Add ORDER BY clause to sort by order id in descending order
+    ordersQuery += ` ORDER BY o.id DESC`;
+
+    // Execute the query with or without parameters based on the presence of order_status
+    const [ordersResult] = order_status
+      ? await db.execute(ordersQuery, [order_status])
+      : await db.execute(ordersQuery);
+
+    // Check if any orders exist
+    if (ordersResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No orders found",
+      });
+    }
+
+    // Fetch products for all orders with their images
+    const [productsResult] = await db.execute(
+      `SELECT 
+              op.order_id, 
+              op.product_id, 
+              p.name, 
+              op.quantity, 
+              op.price, 
+              pi.id as image_id, 
+              pi.image_url 
+            FROM order_products op 
+            LEFT JOIN products p ON p.id = op.product_id 
+            LEFT JOIN product_images pi ON pi.product_id = op.product_id`
+    );
+
+    // Map to store orders by order ID
+    const ordersMap = {};
+
+    // Iterate over orders to organize them
+    ordersResult.forEach((order) => {
+      const userDeliveryAddress = {
+        phone: order.phone,
+        contact: order.contact,
+        address: order.address,
+        address_type: order.address_type,
+        city: order.city,
+        post_code: order.post_code,
+        message: order.message,
+      };
+
+      // Remove address fields from the order object
+      delete order.phone;
+      delete order.contact;
+      delete order.address;
+      delete order.address_type;
+      delete order.city;
+      delete order.post_code;
+      delete order.message;
+
+      // Initialize the order in the ordersMap with products and delivery address
+      ordersMap[order.id] = {
+        ...order,
+        products: [],
+        user_delivery_address: userDeliveryAddress,
+      };
+    });
+
+    // Organize products by associating them with the correct order
+    productsResult.forEach((product) => {
+      if (ordersMap[product.order_id]) {
+        const order = ordersMap[product.order_id];
+
+        // Find the existing product in the order's products list
+        let productEntry = order.products.find(
+          (p) => p.product_id === product.product_id
+        );
+
+        // If the product is not already in the list, add it
+        if (!productEntry) {
+          productEntry = {
+            product_id: product.product_id,
+            name: product.name,
+            quantity: product.quantity,
+            price: product.price,
+            images: [],
+          };
+          order.products.push(productEntry);
+        }
+
+        // Add the product image to the product's image list
+        if (product.image_id) {
+          productEntry.images.push({
+            id: product.image_id,
+            image_url: product.image_url,
+          });
+        }
+      }
+    });
+
+    // Convert the ordersMap to an array of orders
+    const orders = Object.values(ordersMap);
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      totalOrders: orders.length,
+      data: orders,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the orders",
+      error: error.message,
+    });
+  }
+};
+
+// update order status
+exports.orderStatus = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    if (!orderId) {
+      return res.status(404).send({
+        success: false,
+        message: "order Id is required in params",
+      });
+    }
+
+    const { order_status } = req.body;
+    if (!order_status) {
+      return res.status(404).send({
+        success: false,
+        message: "order_status is requied in body",
+      });
+    }
+
+    const [data] = await db.query(`SELECT * FROM orders WHERE id=? `, [
+      orderId,
+    ]);
+    if (!data || data.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Order found",
+      });
+    }
+
+    await db.query(`UPDATE orders SET order_status=?  WHERE id =?`, [
+      order_status,
+      orderId,
+    ]);
+
+    res.status(200).send({
+      success: true,
+      message: "Order status updated successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in Update order status ",
+      error: error.message,
+    });
+  }
+};
+
+// // get All Cart Products
+// exports.getAllCartProducts = async (req, res) => {
+//   try {
+//     const user_id = req.decodedUser.id;
+
+//     const [cartItems] = await db.query(`SELECT * FROM Cart WHERE user_id = ?`, [
+//       user_id,
+//     ]);
+
+//     if (cartItems.length === 0) {
+//       return res.status(404).send({
+//         success: false,
+//         message: "No Product found in cart",
+//       });
+//     }
+
+//     const [userData] = await db.query(
+//       `SELECT name, email FROM users WHERE id=?`,
+//       [user_id]
+//     );
+
+//     for (let item of cartItems) {
+//       const [product] = await db.query(`SELECT * FROM products WHERE id = ?`, [
+//         item.product_id,
+//       ]);
+//       item.product_name = product[0].name;
+//       item.product_type = product[0].product_type;
+//       item.product_unit = product[0].unit;
+//       item.product_tax = product[0].tax;
+//       item.product_is_stock = product[0].is_stock;
+//       item.product_purchase_price = product[0].purchase_price;
+//       item.product_regular_price = product[0].regular_price;
+//       item.product_selling_price = product[0].selling_price;
+//       item.product_whole_price = product[0].whole_price;
+//       item.product_discount_price = product[0].discount_price;
+//     }
+
+//     res.status(200).send({
+//       success: true,
+//       message: "Products retrieved from cart",
+//       userName: userData[0].name,
+//       userEmail: userData[0].email,
+//       totalProducts: cartItems.length,
+//       data: cartItems,
+//     });
+//   } catch (error) {
+//     res.status(500).send({
+//       success: false,
+//       message: "Error retrieving products from cart",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // delete All product from cart
+// exports.deleteAllProductFromCart = async (req, res) => {
+//   try {
+//     const user_id = req.decodedUser.id;
+
+//     const [data] = await db.query(`SELECT * FROM Cart WHERE user_id=? `, [
+//       user_id,
+//     ]);
+//     if (!data || data.length === 0) {
+//       return res.status(404).send({
+//         success: false,
+//         message: "No Product found from cart",
+//       });
+//     }
+//     await db.query(`DELETE FROM Cart WHERE user_id=?`, [user_id]);
+//     res.status(200).send({
+//       success: true,
+//       message: "Delete all product from cart",
+//     });
+//   } catch (error) {
+//     res.status(500).send({
+//       success: false,
+//       message: "Error in delete all product from cart",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // delete Single product from cart
+// exports.deleteSingleProductFromCart = async (req, res) => {
+//   try {
+//     const id = req.params.id;
+
+//     const [data] = await db.query(`SELECT * FROM Cart WHERE id=? `, [id]);
+//     if (!data || data.length === 0) {
+//       return res.status(404).send({
+//         success: false,
+//         message: "No Product found from cart",
+//       });
+//     }
+//     await db.query(`DELETE FROM Cart WHERE id=?`, [id]);
+//     res.status(200).send({
+//       success: true,
+//       message: "Delete Single product from cart",
+//     });
+//   } catch (error) {
+//     res.status(500).send({
+//       success: false,
+//       message: "Error in delete Single product from cart",
+//       error: error.message,
+//     });
+//   }
+// };
