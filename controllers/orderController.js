@@ -24,8 +24,8 @@ exports.createOrder = async (req, res) => {
 
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (company, created_by, delivery_date, order_status, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id)
-       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
         user_id,
@@ -371,110 +371,81 @@ exports.orderStatus = async (req, res) => {
   }
 };
 
-// // get All Cart Products
-// exports.getAllCartProducts = async (req, res) => {
-//   try {
-//     const user_id = req.decodedUser.id;
+// Update Order Product Price and Order Details
+exports.updateOrderProductPrice = async (req, res) => {
+  const connection = await db.getConnection(); // Assume db.getConnection() returns a MySQL connection instance
 
-//     const [cartItems] = await db.query(`SELECT * FROM Cart WHERE user_id = ?`, [
-//       user_id,
-//     ]);
+  try {
+    const order_id = req.params.id;
+    const { sub_total, tax, tax_amount, delivery_fee, total, products } =
+      req.body;
 
-//     if (cartItems.length === 0) {
-//       return res.status(404).send({
-//         success: false,
-//         message: "No Product found in cart",
-//       });
-//     }
+    // Start transaction
+    await connection.beginTransaction();
 
-//     const [userData] = await db.query(
-//       `SELECT name, email FROM users WHERE id=?`,
-//       [user_id]
-//     );
+    // Check if the order exists
+    const [orderData] = await connection.query(
+      `SELECT * FROM orders WHERE id = ?`,
+      [order_id]
+    );
 
-//     for (let item of cartItems) {
-//       const [product] = await db.query(`SELECT * FROM products WHERE id = ?`, [
-//         item.product_id,
-//       ]);
-//       item.product_name = product[0].name;
-//       item.product_type = product[0].product_type;
-//       item.product_unit = product[0].unit;
-//       item.product_tax = product[0].tax;
-//       item.product_is_stock = product[0].is_stock;
-//       item.product_purchase_price = product[0].purchase_price;
-//       item.product_regular_price = product[0].regular_price;
-//       item.product_selling_price = product[0].selling_price;
-//       item.product_whole_price = product[0].whole_price;
-//       item.product_discount_price = product[0].discount_price;
-//     }
+    if (!orderData || orderData.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Order found",
+      });
+    }
 
-//     res.status(200).send({
-//       success: true,
-//       message: "Products retrieved from cart",
-//       userName: userData[0].name,
-//       userEmail: userData[0].email,
-//       totalProducts: cartItems.length,
-//       data: cartItems,
-//     });
-//   } catch (error) {
-//     res.status(500).send({
-//       success: false,
-//       message: "Error retrieving products from cart",
-//       error: error.message,
-//     });
-//   }
-// };
+    // Update `orders` table with the new values
+    const [orderResult] = await connection.execute(
+      `UPDATE orders SET sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
+      [sub_total, tax, tax_amount, delivery_fee, total, order_id]
+    );
 
-// // delete All product from cart
-// exports.deleteAllProductFromCart = async (req, res) => {
-//   try {
-//     const user_id = req.decodedUser.id;
+    // Update products in the `order_products` table
+    for (let product of products) {
+      const { product_id, price, quantity } = product;
 
-//     const [data] = await db.query(`SELECT * FROM Cart WHERE user_id=? `, [
-//       user_id,
-//     ]);
-//     if (!data || data.length === 0) {
-//       return res.status(404).send({
-//         success: false,
-//         message: "No Product found from cart",
-//       });
-//     }
-//     await db.query(`DELETE FROM Cart WHERE user_id=?`, [user_id]);
-//     res.status(200).send({
-//       success: true,
-//       message: "Delete all product from cart",
-//     });
-//   } catch (error) {
-//     res.status(500).send({
-//       success: false,
-//       message: "Error in delete all product from cart",
-//       error: error.message,
-//     });
-//   }
-// };
+      // Check if the product exists in the order
+      const [productData] = await connection.query(
+        `SELECT * FROM order_products WHERE order_id = ? AND product_id = ?`,
+        [order_id, product_id]
+      );
 
-// // delete Single product from cart
-// exports.deleteSingleProductFromCart = async (req, res) => {
-//   try {
-//     const id = req.params.id;
+      if (productData && productData.length > 0) {
+        // Update existing product in the order
+        await connection.execute(
+          `UPDATE order_products SET price = ?, quantity = ? WHERE order_id = ? AND product_id = ?`,
+          [price, quantity, order_id, product_id]
+        );
+      } else {
+        // If the product doesn't exist, insert it as a new product for this order
+        await connection.execute(
+          `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?)`,
+          [order_id, product_id, price, quantity]
+        );
+      }
+    }
 
-//     const [data] = await db.query(`SELECT * FROM Cart WHERE id=? `, [id]);
-//     if (!data || data.length === 0) {
-//       return res.status(404).send({
-//         success: false,
-//         message: "No Product found from cart",
-//       });
-//     }
-//     await db.query(`DELETE FROM Cart WHERE id=?`, [id]);
-//     res.status(200).send({
-//       success: true,
-//       message: "Delete Single product from cart",
-//     });
-//   } catch (error) {
-//     res.status(500).send({
-//       success: false,
-//       message: "Error in delete Single product from cart",
-//       error: error.message,
-//     });
-//   }
-// };
+    // Commit transaction
+    await connection.commit();
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Order and product prices updated successfully",
+    });
+  } catch (error) {
+    // Rollback transaction in case of error
+    await connection.rollback();
+
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the order",
+      error: error.message,
+    });
+  } finally {
+    // Release the connection back to the pool
+    connection.release();
+  }
+};
