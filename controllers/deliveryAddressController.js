@@ -86,11 +86,11 @@ exports.getMyDeliveryAddress = async (req, res) => {
 // update delivery address
 exports.updateDeliveryAddress = async (req, res) => {
   try {
-    const user_id = req.decodedUser.id;
+    const id = req.params.id;
 
     const [data] = await db.query(
-      "SELECT * FROM user_delivery_address WHERE user_id = ? LIMIT 1",
-      [user_id]
+      "SELECT * FROM user_delivery_address WHERE id = ?",
+      [id]
     );
 
     if (!data || data.length == 0) {
@@ -105,7 +105,7 @@ exports.updateDeliveryAddress = async (req, res) => {
 
     // Execute the update query
     const [result] = await db.query(
-      "UPDATE user_delivery_address SET phone=?, contact=?, address=?, address_type=?, city=?, post_code=?, message=? WHERE user_id = ?",
+      "UPDATE user_delivery_address SET phone=?, contact=?, address=?, address_type=?, city=?, post_code=?, message=? WHERE id = ?",
       [
         phone || data[0].phone,
         contact || data[0].contact,
@@ -114,7 +114,7 @@ exports.updateDeliveryAddress = async (req, res) => {
         city || data[0].city,
         post_code || data[0].post_code,
         message || data[0].message,
-        user_id,
+        id,
       ]
     );
 
