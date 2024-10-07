@@ -120,16 +120,41 @@ exports.createProducts = async (req, res) => {
 // get all products
 exports.getAllProducts = async (req, res) => {
   try {
-    // Query to get all products along with their images, subcategories, variants, and tags
-    const productQuery = `
+    // Extract search and filter criteria from query parameters
+    const { name, tag, subcategory, category } = req.query;
+
+    // Build the base query
+    let productQuery = `
       SELECT 
         p.*,  
         c.category_image, 
         c.category_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_sub_categories psc ON p.id = psc.product_id
+      LEFT JOIN sub_categories sc ON psc.sub_category_id = sc.id
+      LEFT JOIN product_tags pt ON p.id = pt.product_id
+      WHERE 1 = 1
     `;
 
+    // Add search and filter conditions dynamically
+    if (name) {
+      productQuery += ` AND p.name LIKE '%${name}%'`;
+    }
+
+    if (category) {
+      productQuery += ` AND c.category_name LIKE '%${category}%'`;
+    }
+
+    if (subcategory) {
+      productQuery += ` AND sc.name LIKE '%${subcategory}%'`;
+    }
+
+    if (tag) {
+      productQuery += ` AND pt.tag_name LIKE '%${tag}%'`;
+    }
+
+    // Execute the query
     const [products] = await db.query(productQuery);
 
     if (!products.length) {
@@ -139,9 +164,8 @@ exports.getAllProducts = async (req, res) => {
       });
     }
 
-    // Loop through each product and process images, variants, subcategories, and tags in parallel
+    // Process each product for images, variants, subcategories, and tags
     const productPromises = products.map(async (product) => {
-      // Fetch images for the product
       const [images] = await db.query(
         `SELECT id, image_url FROM product_images WHERE product_id = ?`,
         [product.id]
@@ -153,7 +177,6 @@ exports.getAllProducts = async (req, res) => {
           }))
         : [];
 
-      // Fetch variants for the product
       const [variants] = await db.query(
         `SELECT id, variant_name, variant_value FROM product_variants WHERE product_id = ?`,
         [product.id]
@@ -164,13 +187,11 @@ exports.getAllProducts = async (req, res) => {
         variant_value: variant.variant_value,
       }));
 
-      // Fetch subcategories for the product
       const [subcategories] = await db.query(
         `SELECT * FROM product_sub_categories WHERE product_id = ?`,
         [product.id]
       );
 
-      // Map through subcategories and fetch detailed subcategory info from sub_categories table
       const subcategoryPromises = subcategories.map(async (subCategory) => {
         const [subcategoryDetails] = await db.query(
           `SELECT id, image, name
@@ -178,8 +199,6 @@ exports.getAllProducts = async (req, res) => {
            WHERE id = ?`,
           [subCategory.sub_category_id]
         );
-
-        // If subcategory details are found, map them
         return subcategoryDetails.length
           ? {
               subCategory_id: subcategoryDetails[0].id,
@@ -189,10 +208,8 @@ exports.getAllProducts = async (req, res) => {
           : null;
       });
 
-      // Resolve all subcategory details in parallel
       product.subcategories = await Promise.all(subcategoryPromises);
 
-      // Fetch tags for the product
       const [tags] = await db.query(
         `SELECT tag_name FROM product_tags WHERE product_id = ?`,
         [product.id]
@@ -202,10 +219,8 @@ exports.getAllProducts = async (req, res) => {
       return product;
     });
 
-    // Resolve all product data
     const allProducts = await Promise.all(productPromises);
 
-    // Send the product data
     res.status(200).send({
       success: true,
       message: "Products retrieved successfully",
