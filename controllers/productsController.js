@@ -120,8 +120,18 @@ exports.createProducts = async (req, res) => {
 // get all products
 exports.getAllProducts = async (req, res) => {
   try {
-    // Extract search and filter criteria from query parameters
-    const { name, tag, subcategory, category } = req.query;
+    // Extract search, filter, page, and limit criteria from query parameters
+    const {
+      name,
+      tag,
+      subcategory,
+      category,
+      page = 1,
+      limit = 50,
+    } = req.query;
+
+    // Calculate the offset for pagination
+    const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // Build the base query
     let productQuery = `
@@ -153,6 +163,9 @@ exports.getAllProducts = async (req, res) => {
     if (tag) {
       productQuery += ` AND pt.tag_name LIKE '%${tag}%'`;
     }
+
+    // Add LIMIT and OFFSET for pagination
+    productQuery += ` LIMIT ${parseInt(limit)} OFFSET ${offset}`;
 
     // Execute the query
     const [products] = await db.query(productQuery);
@@ -221,16 +234,138 @@ exports.getAllProducts = async (req, res) => {
 
     const allProducts = await Promise.all(productPromises);
 
+    // Fetch the total number of products for pagination purposes
+    const [totalProductsResult] = await db.query(`
+      SELECT COUNT(*) as totalProducts
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_sub_categories psc ON p.id = psc.product_id
+      LEFT JOIN sub_categories sc ON psc.sub_category_id = sc.id
+      LEFT JOIN product_tags pt ON p.id = pt.product_id
+      WHERE 1 = 1
+      ${name ? `AND p.name LIKE '%${name}%'` : ""}
+      ${category ? `AND c.category_name LIKE '%${category}%'` : ""}
+      ${subcategory ? `AND sc.name LIKE '%${subcategory}%'` : ""}
+      ${tag ? `AND pt.tag_name LIKE '%${tag}%'` : ""}
+    `);
+
+    const totalProducts = totalProductsResult[0].totalProducts;
+
+    // Send the product data with pagination info
     res.status(200).send({
       success: true,
       message: "Products retrieved successfully",
-      totalProducts: allProducts.length,
+      totalProducts: totalProducts,
+      totalPages: Math.ceil(totalProducts / limit),
+      currentPage: parseInt(page),
       data: allProducts,
     });
   } catch (error) {
     res.status(500).send({
       success: false,
       message: "An error occurred while fetching the products",
+      error: error.message,
+    });
+  }
+};
+
+// get random products
+exports.getRandomProducts = async (req, res) => {
+  try {
+    // Query to get all products along with their images, subcategories, variants, and tags
+    const productQuery = `
+      SELECT 
+        p.*,  
+        c.category_image, 
+        c.category_name
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id ORDER BY RAND() LIMIT 10`;
+    const [products] = await db.query(productQuery);
+
+    if (!products.length) {
+      return res.status(404).send({
+        success: false,
+        message: "No products found",
+      });
+    }
+
+    // Loop through each product and process images, variants, subcategories, and tags in parallel
+    const productPromises = products.map(async (product) => {
+      // Fetch images for the product
+      const [images] = await db.query(
+        `SELECT id, image_url FROM product_images WHERE product_id = ?`,
+        [product.id]
+      );
+      product.images = images.length
+        ? images.map((image) => ({
+            image_id: image.id,
+            image_url: image.image_url,
+          }))
+        : [];
+
+      // Fetch variants for the product
+      const [variants] = await db.query(
+        `SELECT id, variant_name, variant_value FROM product_variants WHERE product_id = ?`,
+        [product.id]
+      );
+      product.variants = variants.map((variant) => ({
+        variant_id: variant.id,
+        variant_name: variant.variant_name,
+        variant_value: variant.variant_value,
+      }));
+
+      // Fetch subcategories for the product
+      const [subcategories] = await db.query(
+        `SELECT * FROM product_sub_categories WHERE product_id = ?`,
+        [product.id]
+      );
+
+      // Map through subcategories and fetch detailed subcategory info from sub_categories table
+      const subcategoryPromises = subcategories.map(async (subCategory) => {
+        const [subcategoryDetails] = await db.query(
+          `SELECT id, image, name
+           FROM sub_categories 
+           WHERE id = ?`,
+          [subCategory.sub_category_id]
+        );
+
+        // If subcategory details are found, map them
+        return subcategoryDetails.length
+          ? {
+              subCategory_id: subcategoryDetails[0].id,
+              subCategory_image: subcategoryDetails[0].image,
+              subCategory_name: subcategoryDetails[0].name,
+            }
+          : null;
+      });
+
+      // Resolve all subcategory details in parallel
+      product.subcategories = await Promise.all(subcategoryPromises);
+
+      // Fetch tags for the product
+      const [tags] = await db.query(
+        `SELECT tag_name FROM product_tags WHERE product_id = ?`,
+        [product.id]
+      );
+      product.tags = tags.map((tag) => tag.tag_name);
+
+      return product;
+    });
+
+    // Resolve all product data
+    const allProducts = await Promise.all(productPromises);
+
+    // Send the product data
+    res.status(200).send({
+      success: true,
+      message: "Random Products retrieved successfully",
+      totalProducts: allProducts.length,
+      data: allProducts,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "An error occurred while fetching random products",
       error: error.message,
     });
   }

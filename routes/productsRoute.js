@@ -9,6 +9,7 @@ const {
   createPostCode,
   deletePostCode,
   getAllPostCode,
+  getRandomProducts,
 } = require("../controllers/productsController");
 const verifyAdmin = require("../middleware/verifyAdmin");
 
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.post("/create", createProducts);
 router.get("/all", getAllProducts);
+router.get("/random", getRandomProducts);
 
 router.put("/update/:id", updateProduct);
 

@@ -30,58 +30,6 @@ app.use("/api/v1/favorite", require("./routes/favoriteRoute"));
 app.use("/api/v1/order", require("./routes/orderRoute"));
 app.use("/api/v1/delivery-addresss", require("./routes/deliveryAddressRoute"));
 
-// pactice start
-
-app.post("/webhook", async (req, res) => {
-  const secret = "9ygZnSg6umgfxun35rLTCRU5cFWmNQ5X5";
-  const signature = req.headers["x-unipayment-signature"];
-  const payload = JSON.stringify(req.body);
-  const hash = crypto
-    .createHmac("sha256", secret)
-    .update(payload)
-    .digest("hex");
-
-  const reqBody = JSON.stringify(req.body);
-
-  try {
-    // MySQL query using the pool
-
-    const [result] = await mySqlPool.execute(
-      "INSERT INTO miziom (reqBody) VALUES (?)",
-      [reqBody]
-    );
-    console.log("Data inserted successfully:", result);
-
-    res.status(200).send("Webhook verified and data inserted into MySQL");
-  } catch (error) {
-    console.error("MySQL error:", error);
-    res.status(500).send("Database error");
-  }
-
-  // if (hash === signature) {
-  //   const reqBody = JSON.stringify(req.body);
-
-  //   try {
-  //     // MySQL query using the pool
-
-  //     const [result] = await mySqlPool.execute(
-  //       "INSERT INTO miziom (reqBody) VALUES (?)",
-  //       [reqBody]
-  //     );
-  //     console.log("Data inserted successfully:", result);
-
-  //     res.status(200).send("Webhook verified and data inserted into MySQL");
-  //   } catch (error) {
-  //     console.error("MySQL error:", error);
-  //     res.status(500).send("Database error");
-  //   }
-  // } else {
-  //   res.status(400).send("Invalid signature");
-  // }
-});
-
-// pactice end
-
 const port = process.env.PORT || 8080;
 
 mySqlPool
