@@ -76,6 +76,15 @@ exports.getAllFavoriteProduct = async (req, res) => {
         item.product_selling_price = product[0].selling_price;
         item.product_whole_price = product[0].whole_price;
         item.product_discount_price = product[0].discount_price;
+
+        // Fetch images related to the product from product_images table
+        const [images] = await db.query(
+          `SELECT image_url FROM product_images WHERE product_id = ?`,
+          [item.product_id]
+        );
+
+        // Assign the image URLs to the item
+        item.product_images = images[0].image_url;
       } else {
         // If product data is missing, provide default or skip setting it
         item.product_name = null;
@@ -88,6 +97,7 @@ exports.getAllFavoriteProduct = async (req, res) => {
         item.product_selling_price = null;
         item.product_whole_price = null;
         item.product_discount_price = null;
+        item.product_images = null; // Default to empty array if no images are found
       }
     }
 
