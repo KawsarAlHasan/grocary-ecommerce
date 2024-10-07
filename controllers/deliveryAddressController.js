@@ -5,19 +5,6 @@ exports.createDeliveryAddress = async (req, res) => {
   try {
     const user_id = req.decodedUser.id;
 
-    const [data] = await db.query(
-      "SELECT * FROM user_delivery_address WHERE user_id = ? LIMIT 1",
-      [user_id]
-    );
-
-    if (data && data.length > 0) {
-      return res.status(400).send({
-        success: true,
-        message:
-          "You have already added a delivery address. To update your details, please edit your existing delivery address.",
-      });
-    }
-
     const { phone, contact, address, address_type, city, post_code, message } =
       req.body;
 
@@ -85,7 +72,7 @@ exports.getMyDeliveryAddress = async (req, res) => {
     res.status(200).send({
       success: true,
       message: "Get my delivery address",
-      data: data[0],
+      data: data,
     });
   } catch (error) {
     res.status(500).send({
@@ -106,7 +93,7 @@ exports.updateDeliveryAddress = async (req, res) => {
       [user_id]
     );
 
-    if (!data && data.length == 0) {
+    if (!data || data.length == 0) {
       return res.status(400).send({
         success: true,
         message: "No Data Found",
@@ -148,6 +135,41 @@ exports.updateDeliveryAddress = async (req, res) => {
     res.status(500).send({
       success: false,
       message: "Error updating Delivery address",
+      error: error.message,
+    });
+  }
+};
+
+// delete delivery address
+exports.deleteDeliveryAddress = async (req, res) => {
+  try {
+    const deliveryId = req.params.id;
+
+    const [data] = await db.query(
+      "SELECT * FROM user_delivery_address WHERE id = ?",
+      [deliveryId]
+    );
+
+    if (!data || data.length == 0) {
+      return res.status(400).send({
+        success: true,
+        message: "No Data Found",
+      });
+    }
+
+    await db.query("DELETE FROM user_delivery_address WHERE id=?", [
+      deliveryId,
+    ]);
+
+    // Success response
+    res.status(200).send({
+      success: true,
+      message: "Delivery address delete successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error deleting Delivery address",
       error: error.message,
     });
   }
