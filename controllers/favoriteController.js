@@ -63,16 +63,32 @@ exports.getAllFavoriteProduct = async (req, res) => {
       const [product] = await db.query(`SELECT * FROM products WHERE id = ?`, [
         item.product_id,
       ]);
-      item.product_name = product[0].name;
-      item.product_type = product[0].product_type;
-      item.product_unit = product[0].unit;
-      item.product_tax = product[0].tax;
-      item.product_is_stock = product[0].is_stock;
-      item.product_purchase_price = product[0].purchase_price;
-      item.product_regular_price = product[0].regular_price;
-      item.product_selling_price = product[0].selling_price;
-      item.product_whole_price = product[0].whole_price;
-      item.product_discount_price = product[0].discount_price;
+
+      // Check if product data exists
+      if (product && product.length > 0) {
+        item.product_name = product[0].name;
+        item.product_type = product[0].product_type;
+        item.product_unit = product[0].unit;
+        item.product_tax = product[0].tax;
+        item.product_is_stock = product[0].is_stock;
+        item.product_purchase_price = product[0].purchase_price;
+        item.product_regular_price = product[0].regular_price;
+        item.product_selling_price = product[0].selling_price;
+        item.product_whole_price = product[0].whole_price;
+        item.product_discount_price = product[0].discount_price;
+      } else {
+        // If product data is missing, provide default or skip setting it
+        item.product_name = null;
+        item.product_type = null;
+        item.product_unit = null;
+        item.product_tax = null;
+        item.product_is_stock = null;
+        item.product_purchase_price = null;
+        item.product_regular_price = null;
+        item.product_selling_price = null;
+        item.product_whole_price = null;
+        item.product_discount_price = null;
+      }
     }
 
     res.status(200).send({

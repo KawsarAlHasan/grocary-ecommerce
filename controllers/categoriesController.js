@@ -51,6 +51,7 @@ exports.getAllCategoryWithSub = async (req, res) => {
         c.category_name, 
         c.category_image, 
         sc.id AS sub_category_id, 
+        sc.main_cat_id AS main_cat_id,
         sc.name AS sub_category_name, 
         sc.image AS sub_category_image 
       FROM categories c
@@ -75,6 +76,7 @@ exports.getAllCategoryWithSub = async (req, res) => {
         category_name,
         category_image,
         sub_category_id,
+        main_cat_id,
         sub_category_name,
         sub_category_image,
       } = row;
@@ -93,6 +95,7 @@ exports.getAllCategoryWithSub = async (req, res) => {
       if (sub_category_id) {
         categoryMap[category_id].sub_categories.push({
           id: sub_category_id,
+          main_cat_id: main_cat_id,
           name: sub_category_name,
           image: sub_category_image,
         });
