@@ -38,6 +38,42 @@ exports.addFavorite = async (req, res) => {
   }
 };
 
+// check favorite product
+exports.checkFavorite = async (req, res) => {
+  try {
+    const product_id = req.params.id;
+    const user_id = req.decodedUser.id;
+
+    // Execute the query to check if the product is a favorite
+    const [data] = await db.query(
+      `SELECT * FROM favorite WHERE user_id = ? AND product_id = ?`,
+      [user_id, product_id]
+    );
+
+    // If no data is returned, it's not a favorite product
+    if (data.length === 0) {
+      return res.status(200).send({
+        message: "This product is not in your favorite",
+        favorite: false,
+      });
+    }
+
+    // If data exists, it's a favorite product
+    return res.status(200).send({
+      message: "This product is in your favorite",
+      favorite: true,
+    });
+  } catch (error) {
+    // Handle errors appropriately
+    return res.status(500).send({
+      success: false,
+      message: "Error in checking favorite product",
+      error: error.message,
+    });
+  }
+};
+
+// get all favorite product
 exports.getAllFavoriteProduct = async (req, res) => {
   try {
     const user_id = req.decodedUser.id;
