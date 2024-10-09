@@ -185,16 +185,24 @@ exports.deleteAllProductFromFavorite = async (req, res) => {
 // delete Single product from Favorite
 exports.deleteSingleProductFromFavorite = async (req, res) => {
   try {
-    const id = req.params.id;
+    const product_id = req.params.id;
+    const user_id = req.decodedUser.id;
 
-    const [data] = await db.query(`SELECT * FROM favorite WHERE id=? `, [id]);
+    // Execute the query to check if the product is a favorite
+    const [data] = await db.query(
+      `SELECT * FROM favorite WHERE user_id = ? AND product_id = ?`,
+      [user_id, product_id]
+    );
     if (!data || data.length === 0) {
       return res.status(404).send({
         success: false,
         message: "No Product found from favorite",
       });
     }
-    await db.query(`DELETE FROM favorite WHERE id=?`, [id]);
+    await db.query(
+      `DELETE FROM favorite WHERE user_id = ? AND product_id = ?`,
+      [user_id, product_id]
+    );
     res.status(200).send({
       success: true,
       message: "Delete Single product from favorite",
