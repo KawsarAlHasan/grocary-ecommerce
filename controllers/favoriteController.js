@@ -117,7 +117,7 @@ exports.getAllFavoriteProduct = async (req, res) => {
           `SELECT id, image_url FROM product_images WHERE product_id = ?`,
           [item.product_id]
         );
-        item.product_images = images.length
+        item.images = images.length
           ? images.map((image) => ({
               image_id: image.id,
               image_url: image.image_url,
@@ -175,7 +175,7 @@ exports.getAllFavoriteProduct = async (req, res) => {
         item.product_selling_price = null;
         item.product_whole_price = null;
         item.product_discount_price = null;
-        item.product_images = [];
+        item.images = [];
         item.variants = [];
         item.subcategories = [];
         item.tags = [];
