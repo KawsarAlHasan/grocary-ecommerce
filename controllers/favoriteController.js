@@ -96,21 +96,37 @@ exports.getAllFavoriteProduct = async (req, res) => {
     );
 
     const favoritePromises = data.map(async (item) => {
-      const [product] = await db.query(`SELECT * FROM products WHERE id = ?`, [
-        item.product_id,
-      ]);
+      // Modify this query to include category_image and category_name
+      const [product] = await db.query(
+        `SELECT p.*, c.category_image, c.category_name 
+         FROM products p 
+         LEFT JOIN categories c ON p.category_id = c.id 
+         WHERE p.id = ?`,
+        [item.product_id]
+      );
 
       if (product && product.length > 0) {
-        item.product_name = product[0].name;
+        item.name = product[0].name;
+        item.category_id = product[0].category_id;
         item.product_type = product[0].product_type;
-        item.product_unit = product[0].unit;
-        item.product_tax = product[0].tax;
-        item.product_is_stock = product[0].is_stock;
-        item.product_purchase_price = product[0].purchase_price;
-        item.product_regular_price = product[0].regular_price;
-        item.product_selling_price = product[0].selling_price;
-        item.product_whole_price = product[0].whole_price;
-        item.product_discount_price = product[0].discount_price;
+        item.unit = product[0].unit;
+        item.long_description = product[0].long_description;
+        item.short_description = product[0].short_description;
+        item.status = product[0].status;
+        item.tax = product[0].tax;
+        item.country = product[0].country;
+        item.is_stock = product[0].is_stock;
+        item.created_at = product[0].created_at;
+        item.updated_at = product[0].updated_at;
+        item.purchase_price = product[0].purchase_price;
+        item.regular_price = product[0].regular_price;
+        item.selling_price = product[0].selling_price;
+        item.whole_price = product[0].whole_price;
+        item.discount_price = product[0].discount_price;
+
+        // Add category_image and category_name
+        item.category_image = product[0].category_image;
+        item.category_name = product[0].category_name;
 
         // Fetch images related to the product
         const [images] = await db.query(
@@ -164,21 +180,29 @@ exports.getAllFavoriteProduct = async (req, res) => {
         );
         item.tags = tags.map((tag) => tag.tag_name);
       } else {
-        // If product data is missing, provide default or skip setting it
-        item.product_name = null;
+        item.name = null;
+        item.category_id = null;
         item.product_type = null;
-        item.product_unit = null;
-        item.product_tax = null;
-        item.product_is_stock = null;
-        item.product_purchase_price = null;
-        item.product_regular_price = null;
-        item.product_selling_price = null;
-        item.product_whole_price = null;
-        item.product_discount_price = null;
+        item.unit = null;
+        item.long_description = null;
+        item.short_description = null;
+        item.status = null;
+        item.tax = null;
+        item.country = null;
+        item.is_stock = null;
+        item.created_at = null;
+        item.updated_at = null;
+        item.purchase_price = null;
+        item.regular_price = null;
+        item.selling_price = null;
+        item.whole_price = null;
+        item.discount_price = null;
         item.images = [];
         item.variants = [];
         item.subcategories = [];
         item.tags = [];
+        item.category_image = null;
+        item.category_name = null;
       }
     });
 
