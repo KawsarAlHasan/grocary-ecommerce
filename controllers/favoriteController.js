@@ -95,12 +95,11 @@ exports.getAllFavoriteProduct = async (req, res) => {
       [user_id]
     );
 
-    for (let item of data) {
+    const favoritePromises = data.map(async (item) => {
       const [product] = await db.query(`SELECT * FROM products WHERE id = ?`, [
         item.product_id,
       ]);
 
-      // Check if product data exists
       if (product && product.length > 0) {
         item.product_name = product[0].name;
         item.product_type = product[0].product_type;
@@ -113,14 +112,57 @@ exports.getAllFavoriteProduct = async (req, res) => {
         item.product_whole_price = product[0].whole_price;
         item.product_discount_price = product[0].discount_price;
 
-        // Fetch images related to the product from product_images table
+        // Fetch images related to the product
         const [images] = await db.query(
-          `SELECT image_url FROM product_images WHERE product_id = ?`,
+          `SELECT id, image_url FROM product_images WHERE product_id = ?`,
+          [item.product_id]
+        );
+        item.product_images = images.length
+          ? images.map((image) => ({
+              image_id: image.id,
+              image_url: image.image_url,
+            }))
+          : [];
+
+        // Fetch variants related to the product
+        const [variants] = await db.query(
+          `SELECT id, variant_name, variant_value FROM product_variants WHERE product_id = ?`,
+          [item.product_id]
+        );
+        item.variants = variants.map((variant) => ({
+          variant_id: variant.id,
+          variant_name: variant.variant_name,
+          variant_value: variant.variant_value,
+        }));
+
+        // Fetch subcategories related to the product
+        const [subcategories] = await db.query(
+          `SELECT * FROM product_sub_categories WHERE product_id = ?`,
           [item.product_id]
         );
 
-        // Assign the image URLs to the item
-        item.product_images = images[0].image_url;
+        const subcategoryPromises = subcategories.map(async (subCategory) => {
+          const [subcategoryDetails] = await db.query(
+            `SELECT id, image, name FROM sub_categories WHERE id = ?`,
+            [subCategory.sub_category_id]
+          );
+          return subcategoryDetails.length
+            ? {
+                subCategory_id: subcategoryDetails[0].id,
+                subCategory_image: subcategoryDetails[0].image,
+                subCategory_name: subcategoryDetails[0].name,
+              }
+            : null;
+        });
+
+        item.subcategories = await Promise.all(subcategoryPromises);
+
+        // Fetch tags related to the product
+        const [tags] = await db.query(
+          `SELECT tag_name FROM product_tags WHERE product_id = ?`,
+          [item.product_id]
+        );
+        item.tags = tags.map((tag) => tag.tag_name);
       } else {
         // If product data is missing, provide default or skip setting it
         item.product_name = null;
@@ -133,13 +175,18 @@ exports.getAllFavoriteProduct = async (req, res) => {
         item.product_selling_price = null;
         item.product_whole_price = null;
         item.product_discount_price = null;
-        item.product_images = null; // Default to empty array if no images are found
+        item.product_images = [];
+        item.variants = [];
+        item.subcategories = [];
+        item.tags = [];
       }
-    }
+    });
+
+    await Promise.all(favoritePromises);
 
     res.status(200).send({
       success: true,
-      message: "Get all Product in Cart",
+      message: "Get all Favorite Products",
       userID: userData[0].id,
       userName: userData[0].name,
       userEmail: userData[0].email,
@@ -148,7 +195,7 @@ exports.getAllFavoriteProduct = async (req, res) => {
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error in getting all product from Favorite",
+      message: "Error in getting all products from Favorite",
       error: error.message,
     });
   }
