@@ -331,10 +331,8 @@ exports.getAllUserOrder = async (req, res) => {
 // get all order
 exports.getAllOrders = async (req, res) => {
   try {
-    // Capture the order_status from query parameters
-    const { order_status } = req.query;
+    const { order_status, fromDate, toDate } = req.query;
 
-    // SQL query for fetching all orders with an optional order_status filter
     let ordersQuery = `
       SELECT 
         o.*, 
@@ -349,20 +347,30 @@ exports.getAllOrders = async (req, res) => {
       LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
     `;
 
-    // Add WHERE clause if order_status filter is provided
+    const whereClauses = [];
+    const queryParams = [];
+
     if (order_status) {
-      ordersQuery += ` WHERE o.order_status = ?`;
+      whereClauses.push(`o.order_status = ?`);
+      queryParams.push(order_status);
     }
 
-    // Add ORDER BY clause to sort by order id in descending order
+    if (fromDate && toDate) {
+      const fromDateString = `${fromDate} 00:00:00`;
+      const toDateString = `${toDate} 23:59:59`;
+
+      whereClauses.push(`o.created_at BETWEEN ? AND ?`);
+      queryParams.push(fromDateString, toDateString);
+    }
+
+    if (whereClauses.length > 0) {
+      ordersQuery += ` WHERE ` + whereClauses.join(" AND ");
+    }
+
     ordersQuery += ` ORDER BY o.id DESC`;
 
-    // Execute the query with or without parameters based on the presence of order_status
-    const [ordersResult] = order_status
-      ? await db.execute(ordersQuery, [order_status])
-      : await db.execute(ordersQuery);
+    const [ordersResult] = await db.execute(ordersQuery, queryParams);
 
-    // Check if any orders exist
     if (ordersResult.length === 0) {
       return res.status(404).json({
         success: false,
@@ -370,25 +378,22 @@ exports.getAllOrders = async (req, res) => {
       });
     }
 
-    // Fetch products for all orders with their images
     const [productsResult] = await db.execute(
       `SELECT 
-              op.order_id, 
-              op.product_id, 
-              p.name, 
-              op.quantity, 
-              op.price, 
-              pi.id as image_id, 
-              pi.image_url 
-            FROM order_products op 
-            LEFT JOIN products p ON p.id = op.product_id 
-            LEFT JOIN product_images pi ON pi.product_id = op.product_id`
+          op.order_id, 
+          op.product_id, 
+          p.name, 
+          op.quantity, 
+          op.price, 
+          pi.id as image_id, 
+          pi.image_url 
+        FROM order_products op 
+        LEFT JOIN products p ON p.id = op.product_id 
+        LEFT JOIN product_images pi ON pi.product_id = op.product_id`
     );
 
-    // Map to store orders by order ID
     const ordersMap = {};
 
-    // Iterate over orders to organize them
     ordersResult.forEach((order) => {
       const userDeliveryAddress = {
         phone: order.phone,
@@ -400,7 +405,6 @@ exports.getAllOrders = async (req, res) => {
         message: order.message,
       };
 
-      // Remove address fields from the order object
       delete order.phone;
       delete order.contact;
       delete order.address;
@@ -409,7 +413,6 @@ exports.getAllOrders = async (req, res) => {
       delete order.post_code;
       delete order.message;
 
-      // Initialize the order in the ordersMap with products and delivery address
       ordersMap[order.id] = {
         ...order,
         products: [],
@@ -417,17 +420,14 @@ exports.getAllOrders = async (req, res) => {
       };
     });
 
-    // Organize products by associating them with the correct order
     productsResult.forEach((product) => {
       if (ordersMap[product.order_id]) {
         const order = ordersMap[product.order_id];
 
-        // Find the existing product in the order's products list
         let productEntry = order.products.find(
           (p) => p.product_id === product.product_id
         );
 
-        // If the product is not already in the list, add it
         if (!productEntry) {
           productEntry = {
             product_id: product.product_id,
@@ -439,7 +439,6 @@ exports.getAllOrders = async (req, res) => {
           order.products.push(productEntry);
         }
 
-        // Add the product image to the product's image list
         if (product.image_id) {
           productEntry.images.push({
             id: product.image_id,
@@ -449,10 +448,8 @@ exports.getAllOrders = async (req, res) => {
       }
     });
 
-    // Convert the ordersMap to an array of orders
     const orders = Object.values(ordersMap);
 
-    // Success response
     return res.status(200).json({
       success: true,
       totalOrders: orders.length,
