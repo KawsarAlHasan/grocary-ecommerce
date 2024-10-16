@@ -23,7 +23,7 @@ router.get("/me", verifyUser, getMeUser);
 router.get("/all", getAllUsers);
 router.get("/:id", getSingleUser);
 router.put("/update", verifyUser, updateUser);
-router.put("/update/:id", verifyUser, updateUserByID);
+router.put("/update/:id", updateUserByID);
 router.put("/password", verifyUser, updateUserPassword);
 router.put("/status/:id", verifyAdmin, userStatusUpdate);
 router.delete("/delete/:id", verifyAdmin, deleteUser);
