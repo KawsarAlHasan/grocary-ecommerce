@@ -106,6 +106,10 @@ exports.getOrderById = async (req, res) => {
       });
     }
 
+    const [userInfo] = await db.query(`SELECT * FROM users WHERE id=? `, [
+      orderResult[0].id,
+    ]);
+
     const order = orderResult[0]; // Order information
 
     // Organize delivery address data
@@ -175,6 +179,7 @@ exports.getOrderById = async (req, res) => {
     // Success response
     return res.status(200).json({
       success: true,
+      userInfo: userInfo[0],
       order,
     });
   } catch (error) {
