@@ -336,6 +336,88 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+// update user by id
+exports.updateUserByID = async (req, res) => {
+  try {
+    const userID = req.params.id;
+
+    // Extract data from the request body
+    const {
+      name,
+      account_phone,
+      brand,
+      city,
+      company,
+      contract_comptabilité,
+      contract_facturation,
+      post_code,
+      siret,
+    } = req.body;
+
+    // Fetch the current user data from the database
+    const [preData] = await db.query(`SELECT * FROM users WHERE id=?`, [
+      userID,
+    ]);
+
+    if (!preData) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Use data from preData if it is not present in req.body
+    const updatedUserData = {
+      name: name || preData[0].name,
+      account_phone: account_phone || preData[0].account_phone,
+      brand: brand || preData[0].brand,
+      city: city || preData[0].city,
+      company: company || preData[0].company,
+      contract_comptabilité:
+        contract_comptabilité || preData[0].contract_comptabilité,
+      contract_facturation:
+        contract_facturation || preData[0].contract_facturation,
+      post_code: post_code || preData[0].post_code,
+      siret: siret || preData[0].siret,
+    };
+
+    // Update the user data in the database
+    const [data] = await db.query(
+      `UPDATE users SET name=?, account_phone=?, brand=?, city=?, company=?, contract_comptabilité=?, contract_facturation=?, post_code=?, siret=? WHERE id = ?`,
+      [
+        updatedUserData.name,
+        updatedUserData.account_phone,
+        updatedUserData.brand,
+        updatedUserData.city,
+        updatedUserData.company,
+        updatedUserData.contract_comptabilité,
+        updatedUserData.contract_facturation,
+        updatedUserData.post_code,
+        updatedUserData.siret,
+        userID,
+      ]
+    );
+
+    if (!data) {
+      return res.status(500).send({
+        success: false,
+        message: "Error in updating user",
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "User updated successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in updating user",
+      error: error.message,
+    });
+  }
+};
+
 // user password update
 exports.updateUserPassword = async (req, res) => {
   try {
