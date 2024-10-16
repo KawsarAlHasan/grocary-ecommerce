@@ -276,6 +276,8 @@ exports.deleteCategory = async (req, res) => {
       });
     }
 
+    await db.query(`DELETE FROM products WHERE category_id = ?`, [id]);
+
     // Proceed to delete the subCategory
     const [subCategory] = await db.query(
       `DELETE FROM sub_categories WHERE main_cat_id = ?`,

@@ -21,6 +21,7 @@ app.use(express.json());
 // Serve static files
 app.use("/api/v1/admins", require("./routes/adminRoute"));
 app.use("/api/v1/user", require("./routes/usersRoute"));
+app.use("/api/v1/forgot", require("./routes/forgotPassword"));
 app.use("/api/v1/category", require("./routes/categoriesRoute"));
 app.use("/api/v1/subcategory", require("./routes/subCategoriesRoute"));
 app.use("/api/v1/product", require("./routes/productsRoute"));
