@@ -173,13 +173,13 @@ exports.getOrderById = async (req, res) => {
     const products = Object.values(productsMap);
 
     // Add products and delivery address to the order object
+    order.userInfo = userInfo[0];
     order.products = products;
     order.user_delivery_address = userDeliveryAddress;
 
     // Success response
     return res.status(200).json({
       success: true,
-      userInfo: userInfo[0],
       order,
     });
   } catch (error) {
