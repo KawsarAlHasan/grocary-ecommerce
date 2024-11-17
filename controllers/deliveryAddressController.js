@@ -174,3 +174,87 @@ exports.deleteDeliveryAddress = async (req, res) => {
     });
   }
 };
+
+// for admin
+// create delivery address
+exports.createDeliveryAddressForAdmin = async (req, res) => {
+  try {
+    const user_id = req.params.id;
+
+    const { phone, contact, address, address_type, city, post_code, message } =
+      req.body;
+
+    // Check if category_name is provided
+    if (!address || !phone) {
+      return res.status(400).send({
+        success: false,
+        message: "Please provide phone & address field",
+      });
+    }
+
+    // Insert category into the database
+    const [result] = await db.query(
+      "INSERT INTO user_delivery_address (user_id, phone, contact, address, address_type, city, post_code,message) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        user_id,
+        phone,
+        contact || "",
+        address,
+        address_type || "",
+        city || "",
+        post_code || "",
+        message || "",
+      ]
+    );
+
+    // Check if the insertion was successful
+    if (result.affectedRows === 0) {
+      return res.status(500).send({
+        success: false,
+        message: "Failed to insert delivery address, please try again",
+      });
+    }
+
+    // Send success response
+    res.status(200).send({
+      success: true,
+      message: "delivery address inserted successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "An error occurred while inserting the delivery address",
+      error: error.message,
+    });
+  }
+};
+
+// get delivery address
+exports.getMyDeliveryAddressForAdmin = async (req, res) => {
+  try {
+    const user_id = req.params.id;
+
+    const [data] = await db.query(
+      "SELECT * FROM user_delivery_address WHERE user_id =?",
+      [user_id]
+    );
+    if (!data || data.length == 0) {
+      return res.status(400).send({
+        success: true,
+        message: "No Data found",
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Get my delivery address",
+      data: data,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in Get my delivery address",
+      error: error.message,
+    });
+  }
+};
