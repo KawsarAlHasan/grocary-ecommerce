@@ -76,6 +76,82 @@ exports.createOrder = async (req, res) => {
   }
 };
 
+// Create order for admin
+exports.createOrderForAdmin = async (req, res) => {
+  const connection = await db.getConnection(); // Assume db.getConnection() returns a MySQL connection instance
+
+  try {
+    const user_id = req.params.id;
+    const {
+      company,
+      delivery_date,
+      payment_method,
+      sub_total,
+      tax,
+      tax_amount,
+      delivery_fee,
+      total,
+      user_delivery_address_id,
+      products,
+    } = req.body;
+
+    // Start transaction
+    await connection.beginTransaction();
+
+    // Insert into `orders` table
+    const [orderResult] = await connection.execute(
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        company,
+        user_id,
+        delivery_date,
+        payment_method,
+        sub_total,
+        tax,
+        tax_amount,
+        delivery_fee,
+        total,
+        user_delivery_address_id,
+      ]
+    );
+
+    const orderId = orderResult.insertId; // Get the inserted order ID
+
+    // Insert products into `order_products` table
+    for (let product of products) {
+      const { product_id, quantity, price } = product;
+      await connection.execute(
+        `INSERT INTO order_products (order_id, product_id, quantity, price)
+         VALUES (?, ?, ?, ?)`,
+        [orderId, product_id, quantity, price]
+      );
+    }
+
+    // Commit transaction
+    await connection.commit();
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Order created successfully",
+      order_id: orderId,
+    });
+  } catch (error) {
+    // Rollback transaction in case of error
+    await connection.rollback();
+
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while creating the order",
+      error: error.message,
+    });
+  } finally {
+    // Release the connection back to the pool
+    connection.release();
+  }
+};
+
 // Get order by ID with products, images, and delivery address
 exports.getOrderById = async (req, res) => {
   try {
@@ -186,6 +262,148 @@ exports.getOrderById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "An error occurred while fetching the order",
+      error: error.message,
+    });
+  }
+};
+
+// get all user order for admin
+exports.getAllUserOrderForAdmin = async (req, res) => {
+  try {
+    // Capture the order_status from query parameters
+    const { order_status } = req.query;
+    const user_id = req.params.id;
+
+    // SQL query for fetching all orders with an optional order_status filter
+    let ordersQuery = `
+      SELECT 
+        o.*, 
+        uda.phone, 
+        uda.contact, 
+        uda.address, 
+        uda.address_type, 
+        uda.city, 
+        uda.post_code, 
+        uda.message
+      FROM orders o
+      LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+      WHERE o.created_by = ?
+    `;
+
+    // Add WHERE clause if order_status filter is provided
+    if (order_status) {
+      ordersQuery += ` WHERE o.order_status = ?`;
+    }
+
+    // Add ORDER BY clause to sort by order id in descending order
+    ordersQuery += ` ORDER BY o.id DESC`;
+
+    // Execute the query with or without parameters based on the presence of order_status
+    const [ordersResult] = order_status
+      ? await db.execute(ordersQuery, [user_id, order_status])
+      : await db.execute(ordersQuery, [user_id]);
+
+    // Check if any orders exist
+    if (ordersResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No orders found",
+      });
+    }
+
+    // Fetch products for all orders with their images
+    const [productsResult] = await db.execute(
+      `SELECT 
+              op.order_id, 
+              op.product_id, 
+              p.name, 
+              op.quantity, 
+              op.price, 
+              pi.id as image_id, 
+              pi.image_url 
+            FROM order_products op 
+            LEFT JOIN products p ON p.id = op.product_id 
+            LEFT JOIN product_images pi ON pi.product_id = op.product_id`
+    );
+
+    // Map to store orders by order ID
+    const ordersMap = {};
+
+    // Iterate over orders to organize them
+    ordersResult.forEach((order) => {
+      const userDeliveryAddress = {
+        phone: order.phone,
+        contact: order.contact,
+        address: order.address,
+        address_type: order.address_type,
+        city: order.city,
+        post_code: order.post_code,
+        message: order.message,
+      };
+
+      // Remove address fields from the order object
+      delete order.phone;
+      delete order.contact;
+      delete order.address;
+      delete order.address_type;
+      delete order.city;
+      delete order.post_code;
+      delete order.message;
+
+      // Initialize the order in the ordersMap with products and delivery address
+      ordersMap[order.id] = {
+        ...order,
+        products: [],
+        user_delivery_address: userDeliveryAddress,
+      };
+    });
+
+    // Organize products by associating them with the correct order
+    productsResult.forEach((product) => {
+      if (ordersMap[product.order_id]) {
+        const order = ordersMap[product.order_id];
+
+        // Find the existing product in the order's products list
+        let productEntry = order.products.find(
+          (p) => p.product_id === product.product_id
+        );
+
+        // If the product is not already in the list, add it
+        if (!productEntry) {
+          productEntry = {
+            product_id: product.product_id,
+            name: product.name,
+            quantity: product.quantity,
+            price: product.price,
+            images: [],
+          };
+          order.products.push(productEntry);
+        }
+
+        // Add the product image to the product's image list
+        if (product.image_id) {
+          productEntry.images.push({
+            id: product.image_id,
+            image_url: product.image_url,
+          });
+        }
+      }
+    });
+
+    // Convert the ordersMap to an array of orders
+    const orders = Object.values(ordersMap);
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      totalOrders: orders.length,
+      message: "Get User All Orders",
+      data: orders,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the orders",
       error: error.message,
     });
   }
