@@ -3,7 +3,7 @@ const db = require("../config/db");
 // create Subcategory
 exports.createSubCategory = async (req, res) => {
   try {
-    const { main_cat_id, name, image } = req.body;
+    const { sn_number, main_cat_id, name, image } = req.body;
     // Check if category_name is provided
     if (!main_cat_id || !name || !image) {
       return res.status(400).send({
@@ -14,8 +14,8 @@ exports.createSubCategory = async (req, res) => {
 
     // Insert category into the database
     const [result] = await db.query(
-      "INSERT INTO sub_categories (main_cat_id, image, name) VALUES (?, ?, ?)",
-      [main_cat_id, image, name]
+      "INSERT INTO sub_categories (sn_number, main_cat_id, image, name) VALUES (?, ?, ?, ?)",
+      [sn_number || 1000, main_cat_id, image, name]
     );
 
     // Check if the insertion was successful
@@ -43,7 +43,9 @@ exports.createSubCategory = async (req, res) => {
 // get all sub category
 exports.getAllSubCategory = async (req, res) => {
   try {
-    const [data] = await db.query("SELECT * FROM sub_categories");
+    const [data] = await db.query(
+      "SELECT * FROM sub_categories ORDER BY sn_number ASC"
+    );
     if (!data || data.length == 0) {
       return res.status(200).send({
         success: true,
@@ -114,15 +116,7 @@ exports.updateSubCategory = async (req, res) => {
       });
     }
 
-    const { name, image } = req.body;
-
-    // Check if name is provided
-    if (!name) {
-      return res.status(400).send({
-        success: false,
-        message: "Please provide name field",
-      });
-    }
+    const { sn_number, name, image } = req.body;
 
     // Check if sub-category exists
     const [existingSubCategory] = await db.query(
@@ -138,12 +132,14 @@ exports.updateSubCategory = async (req, res) => {
     }
 
     // Set default image from the existing sub-category
+    let snNumber = sn_number ? sn_number : existingSubCategory[0]?.sn_number;
+    let prename = name ? name : existingSubCategory[0]?.name;
     let images = image ? image : existingSubCategory[0]?.image;
 
     // Execute the update query
     const [result] = await db.query(
-      "UPDATE sub_categories SET name = ?, image = ? WHERE id = ?",
-      [name, images, id]
+      "UPDATE sub_categories SET sn_number=?, name = ?, image = ? WHERE id = ?",
+      [snNumber, prename, images, id]
     );
 
     // Check if the sub-category was updated successfully

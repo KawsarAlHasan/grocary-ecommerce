@@ -3,7 +3,7 @@ const db = require("../config/db");
 // create category
 exports.createCategory = async (req, res) => {
   try {
-    const { category_name, category_image } = req.body;
+    const { sn_number, category_name, category_image } = req.body;
 
     // Check if category_name is provided
     if (!category_name || !category_image) {
@@ -15,8 +15,8 @@ exports.createCategory = async (req, res) => {
 
     // Insert category into the database
     const [result] = await db.query(
-      "INSERT INTO categories (category_name, category_image) VALUES (?, ?)",
-      [category_name, category_image]
+      "INSERT INTO categories (sn_number, category_name, category_image) VALUES (?, ?, ?)",
+      [sn_number || 1000, category_name, category_image]
     );
 
     // Check if the insertion was successful
@@ -48,6 +48,7 @@ exports.getAllCategoryWithSub = async (req, res) => {
     const [categories] = await db.query(`
       SELECT 
         c.id AS category_id, 
+        c.sn_number AS category_sn_number, 
         c.category_name, 
         c.category_image, 
         sc.id AS sub_category_id, 
@@ -56,7 +57,7 @@ exports.getAllCategoryWithSub = async (req, res) => {
         sc.image AS sub_category_image 
       FROM categories c
       LEFT JOIN sub_categories sc ON c.id = sc.main_cat_id
-      ORDER BY c.id DESC
+      ORDER BY c.sn_number ASC
     `);
 
     // If no categories found
@@ -73,6 +74,7 @@ exports.getAllCategoryWithSub = async (req, res) => {
     categories.forEach((row) => {
       const {
         category_id,
+        category_sn_number,
         category_name,
         category_image,
         sub_category_id,
@@ -85,6 +87,7 @@ exports.getAllCategoryWithSub = async (req, res) => {
       if (!categoryMap[category_id]) {
         categoryMap[category_id] = {
           id: category_id,
+          sn_number: category_sn_number,
           name: category_name,
           image: category_image,
           sub_categories: [],
@@ -125,7 +128,9 @@ exports.getAllCategoryWithSub = async (req, res) => {
 // get all category
 exports.getAllCategory = async (req, res) => {
   try {
-    const [data] = await db.query("SELECT * FROM categories  ORDER BY id DESC");
+    const [data] = await db.query(
+      "SELECT * FROM categories  ORDER BY sn_number ASC"
+    );
     if (!data || data.length == 0) {
       return res.status(200).send({
         success: true,
@@ -205,28 +210,26 @@ exports.updateCategory = async (req, res) => {
       });
     }
 
-    const { category_name, category_image } = req.body;
-    // Check if category_name is provided
-    if (!category_name) {
-      return res.status(400).send({
-        success: false,
-        message: "Please provide category_name field",
-      });
-    }
+    const { sn_number, category_name, category_image } = req.body;
 
-    const [categoryImage] = await db.query(
-      `SELECT category_image FROM categories WHERE id=?`,
-      [id]
-    );
+    const [preData] = await db.query(`SELECT * FROM categories WHERE id=?`, [
+      id,
+    ]);
+
+    let snNumber = sn_number ? sn_number : preData[0]?.sn_number;
+
+    let categoryName = category_name
+      ? category_name
+      : preData[0]?.category_name;
 
     let category_images = category_image
       ? category_image
-      : categoryImage[0]?.category_image;
+      : preData[0]?.category_image;
 
     // Execute the update query
     const [result] = await db.query(
-      "UPDATE categories SET category_name = ?, category_image = ? WHERE id = ?",
-      [category_name, category_images, id]
+      "UPDATE categories SET sn_number=?, category_name = ?, category_image = ? WHERE id = ?",
+      [snNumber, categoryName, category_images, id]
     );
 
     // Check if the category was updated successfully
