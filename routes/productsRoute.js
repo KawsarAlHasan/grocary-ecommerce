@@ -11,14 +11,18 @@ const {
   getAllPostCode,
   getRandomProducts,
   getNewAllProducts,
+  getAllProductsWithOutPage,
+  getNewAllProductsWithOutPage,
 } = require("../controllers/productsController");
 const verifyAdmin = require("../middleware/verifyAdmin");
 
 const router = express.Router();
 
 router.post("/create", createProducts);
-router.get("/all", getAllProducts);
-router.get("/new", getNewAllProducts);
+router.get("/all-with-page", getAllProducts);
+router.get("/new-with-page", getNewAllProducts);
+router.get("/all", getAllProductsWithOutPage);
+router.get("/new", getNewAllProductsWithOutPage);
 router.get("/random", getRandomProducts);
 
 router.put("/update/:id", updateProduct);
