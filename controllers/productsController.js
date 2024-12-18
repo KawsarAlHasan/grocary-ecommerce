@@ -17,6 +17,7 @@ exports.createProducts = async (req, res) => {
       selling_price,
       whole_price,
       discount_price,
+      supper_marcent,
       images,
       variants,
       subcategories,
@@ -33,7 +34,7 @@ exports.createProducts = async (req, res) => {
 
     // Insert Product into the database
     const [result] = await db.query(
-      "INSERT INTO products (category_id, name, product_type, unit, long_description, short_description, tax, country, purchase_price, regular_price, selling_price, whole_price, discount_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO products (category_id, name, product_type, unit, long_description, short_description, tax, country, purchase_price, regular_price, selling_price, whole_price, discount_price, supper_marcent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         category_id,
         name || null,
@@ -48,6 +49,7 @@ exports.createProducts = async (req, res) => {
         selling_price || null,
         whole_price || null,
         discount_price || null,
+        supper_marcent || 0,
       ]
     );
 
@@ -912,6 +914,7 @@ exports.updateProduct = async (req, res) => {
       selling_price,
       whole_price,
       discount_price,
+      supper_marcent,
       images,
       variants,
       subcategories,
@@ -946,6 +949,7 @@ exports.updateProduct = async (req, res) => {
         selling_price = ?,
         whole_price = ?,
         discount_price = ?
+        supper_marcent = ?
       WHERE id = ?`,
       [
         category_id || product[0].category_id,
@@ -961,6 +965,7 @@ exports.updateProduct = async (req, res) => {
         selling_price || product[0].selling_price,
         whole_price || product[0].whole_price,
         discount_price || product[0].discount_price,
+        supper_marcent || product[0].supper_marcent,
         productId,
       ]
     );
