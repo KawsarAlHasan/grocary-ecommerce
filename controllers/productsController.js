@@ -948,7 +948,7 @@ exports.updateProduct = async (req, res) => {
         regular_price = ?,
         selling_price = ?,
         whole_price = ?,
-        discount_price = ?
+        discount_price = ?,
         supper_marcent = ?
       WHERE id = ?`,
       [
