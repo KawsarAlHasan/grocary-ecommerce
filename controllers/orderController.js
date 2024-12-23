@@ -741,8 +741,18 @@ exports.updateOrderProductPrice = async (req, res) => {
 
   try {
     const order_id = req.params.id;
-    const { sub_total, tax, tax_amount, delivery_fee, total, products } =
-      req.body;
+    const {
+      company,
+      created_by,
+      delivery_date,
+      payment_method,
+      sub_total,
+      tax,
+      tax_amount,
+      delivery_fee,
+      total,
+      products,
+    } = req.body;
 
     // Start transaction
     await connection.beginTransaction();
@@ -762,37 +772,50 @@ exports.updateOrderProductPrice = async (req, res) => {
 
     // Update `orders` table with the new values
     const [orderResult] = await connection.execute(
-      `UPDATE orders SET sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
-      [sub_total, tax, tax_amount, delivery_fee, total, order_id]
+      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
+      [
+        company || orderData[0].company,
+        created_by || orderData[0].created_by,
+        delivery_date || orderData[0].delivery_date,
+        payment_method || orderData[0].payment_method,
+        sub_total || orderData[0].sub_total,
+        tax || orderData[0].tax,
+        tax_amount || orderData[0].tax_amount,
+        delivery_fee || orderData[0].delivery_fee,
+        total || orderData[0].total,
+        order_id,
+      ]
     );
 
     let totalUpdatedRows = orderResult.changedRows; // Track total updated rows
     let totalInsertedRows = 0; // Track total inserted rows
 
     // Update products in the `order_products` table
-    for (let product of products) {
-      const { product_id, price, quantity } = product;
+    if (products) {
+      for (let product of products) {
+        const { product_id, price, quantity } = product;
 
-      // Check if the product exists in the order
-      const [productData] = await connection.query(
-        `SELECT * FROM order_products WHERE order_id = ? AND product_id = ?`,
-        [order_id, product_id]
-      );
+        // Check if the product exists in the order
+        const [productData] = await connection.query(
+          `SELECT * FROM order_products WHERE order_id = ? AND product_id = ?`,
+          [order_id, product_id]
+        );
 
-      if (productData && productData.length > 0) {
-        // Update existing product in the order
-        const [orderProduct] = await connection.execute(
-          `UPDATE order_products SET price = ?, quantity = ? WHERE order_id = ? AND product_id = ?`,
-          [price, quantity, order_id, product_id]
-        );
-        totalUpdatedRows += orderProduct.changedRows;
-      } else {
-        // If the product doesn't exist, insert it as a new product for this order
-        const [insertProductData] = await connection.execute(
-          `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?)`,
-          [order_id, product_id, price, quantity]
-        );
-        totalInsertedRows += insertProductData.affectedRows;
+        if (productData && productData.length > 0) {
+          // Update existing product in the order
+          const [orderProduct] = await connection.execute(
+            `UPDATE order_products SET price = ?, quantity = ? WHERE order_id = ? AND product_id = ?`,
+            [price, quantity, order_id, product_id]
+          );
+          totalUpdatedRows += orderProduct.changedRows;
+        } else {
+          // If the product doesn't exist, insert it as a new product for this order
+          const [insertProductData] = await connection.execute(
+            `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?)`,
+            [order_id, product_id, price, quantity]
+          );
+          totalInsertedRows += insertProductData.affectedRows;
+        }
       }
     }
 
