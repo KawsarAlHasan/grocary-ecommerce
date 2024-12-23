@@ -766,6 +766,9 @@ exports.updateOrderProductPrice = async (req, res) => {
       [sub_total, tax, tax_amount, delivery_fee, total, order_id]
     );
 
+    let totalUpdatedRows = orderResult.changedRows; // Track total updated rows
+    let totalInsertedRows = 0; // Track total inserted rows
+
     // Update products in the `order_products` table
     for (let product of products) {
       const { product_id, price, quantity } = product;
@@ -778,21 +781,30 @@ exports.updateOrderProductPrice = async (req, res) => {
 
       if (productData && productData.length > 0) {
         // Update existing product in the order
-        await connection.execute(
+        const [orderProduct] = await connection.execute(
           `UPDATE order_products SET price = ?, quantity = ? WHERE order_id = ? AND product_id = ?`,
           [price, quantity, order_id, product_id]
         );
+        totalUpdatedRows += orderProduct.changedRows;
       } else {
         // If the product doesn't exist, insert it as a new product for this order
-        await connection.execute(
+        const [insertProductData] = await connection.execute(
           `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?)`,
           [order_id, product_id, price, quantity]
         );
+        totalInsertedRows += insertProductData.affectedRows;
       }
     }
 
     // Commit transaction
     await connection.commit();
+
+    if (totalUpdatedRows === 0 && totalInsertedRows === 0) {
+      return res.status(201).json({
+        success: true,
+        message: "No Data change",
+      });
+    }
 
     // Success response
     return res.status(200).json({
