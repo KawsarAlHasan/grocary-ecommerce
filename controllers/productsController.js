@@ -257,9 +257,12 @@ exports.getAllProducts = async (req, res) => {
     res.status(200).send({
       success: true,
       message: "Products retrieved successfully",
-      totalProducts: totalProducts,
-      totalPages: Math.ceil(totalProducts / limit),
-      currentPage: parseInt(page),
+      pagination: {
+        totalProducts: totalProducts,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(totalProducts / limit),
+      },
       data: allProducts,
     });
   } catch (error) {
