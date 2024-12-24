@@ -1236,3 +1236,49 @@ exports.deletePostCode = async (req, res) => {
     });
   }
 };
+
+// product update
+exports.updateProductUCS = async (req, res) => {
+  console.log("hello");
+  try {
+    const productId = req.params.id;
+    const { unit, is_stock, country, status } = req.body;
+
+    console.log(status, "status");
+
+    // Check if the product exists
+    const [product] = await db.query("SELECT * FROM products WHERE id = ?", [
+      productId,
+    ]);
+
+    if (product.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Update the product information
+    await db.query(
+      `UPDATE products SET unit=?, is_stock=?, country=?, status=? WHERE id = ?`,
+      [
+        unit || product[0].unit,
+        is_stock || product[0].is_stock,
+        country || product[0].country,
+        status || product[0].status,
+        productId,
+      ]
+    );
+
+    res.status(200).send({
+      success: true,
+      message: "Product updated successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "An error occurred while updating the product",
+      error: error.message,
+    });
+  }
+};
