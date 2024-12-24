@@ -67,6 +67,36 @@ exports.getAllSubCategory = async (req, res) => {
   }
 };
 
+// get sub category by category id
+exports.getSubCategoryByCategoryID = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const [data] = await db.query(
+      "SELECT * FROM sub_categories WHERE main_cat_id =?",
+      [id]
+    );
+    if (!data || data.length == 0) {
+      return res.status(200).send({
+        success: true,
+        message: "No sub Category found",
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Get sub Category by category id",
+      data: data,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in Get sub Category by category id",
+      error: error.message,
+    });
+  }
+};
+
 // get single sub category
 exports.getSingleSubCategory = async (req, res) => {
   try {

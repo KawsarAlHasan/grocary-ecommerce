@@ -1242,12 +1242,9 @@ exports.deletePostCode = async (req, res) => {
 
 // product update
 exports.updateProductUCS = async (req, res) => {
-  console.log("hello");
   try {
     const productId = req.params.id;
     const { unit, is_stock, country, status } = req.body;
-
-    console.log(status, "status");
 
     // Check if the product exists
     const [product] = await db.query("SELECT * FROM products WHERE id = ?", [
