@@ -14,6 +14,7 @@ const {
   getAllProductsWithOutPage,
   getNewAllProductsWithOutPage,
   updateProductUCS,
+  productName,
 } = require("../controllers/productsController");
 const verifyAdmin = require("../middleware/verifyAdmin");
 
@@ -23,6 +24,7 @@ router.post("/create", createProducts);
 router.get("/all-with-page", getAllProducts);
 router.get("/new-with-page", getNewAllProducts);
 router.get("/all", getAllProducts);
+router.get("/", productName);
 router.get("/new", getNewAllProductsWithOutPage);
 router.get("/random", getRandomProducts);
 

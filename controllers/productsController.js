@@ -274,6 +274,27 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+exports.productName = async (req, res) => {
+  try {
+    // products
+    const [data] = await db.query(
+      "SELECT id, name, purchase_price, regular_price, selling_price, whole_price, discount_price, supper_marcent  FROM products"
+    );
+
+    res.status(200).send({
+      success: true,
+      message: "Get All Data for product",
+      data: data,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Internal server errr",
+      error: error.message,
+    });
+  }
+};
+
 // get new all products
 exports.getNewAllProducts = async (req, res) => {
   try {
