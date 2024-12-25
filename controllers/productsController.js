@@ -278,7 +278,7 @@ exports.productName = async (req, res) => {
   try {
     // products
     const [data] = await db.query(
-      "SELECT id, name, purchase_price, regular_price, selling_price, whole_price, discount_price, supper_marcent  FROM products"
+      "SELECT id, name, purchase_price, regular_price, selling_price, whole_price, discount_price, supper_marcent, tax  FROM products"
     );
 
     res.status(200).send({
