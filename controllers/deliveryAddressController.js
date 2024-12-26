@@ -83,6 +83,33 @@ exports.getMyDeliveryAddress = async (req, res) => {
   }
 };
 
+// get all delivery address
+exports.getAllDeliveryAddress = async (req, res) => {
+  try {
+    const [data] = await db.query(
+      "SELECT id, user_id, address FROM user_delivery_address"
+    );
+    if (!data || data.length == 0) {
+      return res.status(400).send({
+        success: true,
+        message: "No Data found",
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Get all delivery address",
+      data: data,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in Get all delivery address",
+      error: error.message,
+    });
+  }
+};
+
 // update delivery address
 exports.updateDeliveryAddress = async (req, res) => {
   try {

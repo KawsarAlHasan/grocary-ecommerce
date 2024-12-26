@@ -6,6 +6,7 @@ const {
   deleteDeliveryAddress,
   createDeliveryAddressForAdmin,
   getMyDeliveryAddressForAdmin,
+  getAllDeliveryAddress,
 } = require("../controllers/deliveryAddressController");
 const verifyUser = require("../middleware/verifyUser");
 
@@ -13,6 +14,7 @@ const router = express.Router();
 
 router.post("/create", verifyUser, createDeliveryAddress);
 router.get("/", verifyUser, getMyDeliveryAddress);
+router.get("/all", getAllDeliveryAddress);
 router.put("/update/:id", updateDeliveryAddress);
 router.delete("/delete/:id", deleteDeliveryAddress);
 
