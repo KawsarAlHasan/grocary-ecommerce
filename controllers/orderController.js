@@ -554,7 +554,7 @@ exports.getAllUserOrder = async (req, res) => {
 // get all order
 exports.getAllOrders = async (req, res) => {
   try {
-    const { order_status, fromDate, toDate } = req.query;
+    const { order_status, fromDate, toDate, user_id } = req.query;
 
     let ordersQuery = `
       SELECT 
@@ -576,6 +576,11 @@ exports.getAllOrders = async (req, res) => {
     if (order_status) {
       whereClauses.push(`o.order_status = ?`);
       queryParams.push(order_status);
+    }
+
+    if (user_id) {
+      whereClauses.push(`o.created_by = ?`);
+      queryParams.push(user_id);
     }
 
     if (fromDate && toDate) {
