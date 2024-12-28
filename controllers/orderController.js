@@ -853,3 +853,96 @@ exports.updateOrderProductPrice = async (req, res) => {
     connection.release();
   }
 };
+
+// get all array order
+exports.getAllArrayOrders = async (req, res) => {
+  try {
+    const { ordersID } = req.query;
+
+    const orderIdsArray = `(${ordersID.map((item) => `'${item}'`).join(", ")})`;
+
+    // Fetch orders
+    const [ordersResult] = await db.execute(
+      `SELECT 
+          o.*, 
+          uda.phone, 
+          uda.contact, 
+          uda.address, 
+          uda.address_type, 
+          uda.city, 
+          uda.post_code, 
+          uda.message
+        FROM orders o
+        LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+        WHERE o.id IN ${orderIdsArray}
+        ORDER BY o.id DESC;`
+    );
+
+    if (ordersResult.length === 0) {
+      return res.status(200).json({
+        success: false,
+        message: "No orders found",
+        data: [],
+      });
+    }
+
+    // Fetch all products for the orders
+    const [orProducts] = await db.execute(
+      `SELECT or_pro.*,
+      pro.name,
+      pro.unit,
+      or_pro.order_id
+      FROM order_products or_pro
+      LEFT JOIN products pro ON or_pro.product_id = pro.id
+      WHERE or_pro.order_id IN ${orderIdsArray}`
+    );
+
+    // Get all product IDs
+    const productIds = orProducts.map((item) => item.product_id);
+
+    // Fetch images for all product IDs
+    const [images] = await db.query(
+      `SELECT * FROM product_images WHERE product_id IN (?)`,
+      [productIds]
+    );
+
+    // Map images by product_id for easier access
+    const imageMap = {};
+    images.forEach((image) => {
+      imageMap[image.product_id] = image;
+    });
+
+    // Attach images to the corresponding product
+    orProducts.forEach((product) => {
+      const imageData = imageMap[product.product_id];
+      product.image = imageData ? imageData.image_url : ""; // If image data is undefined, set an empty string
+    });
+
+    // Group products by order_id
+    const productsByOrderId = {};
+    orProducts.forEach((product) => {
+      if (!productsByOrderId[product.order_id]) {
+        productsByOrderId[product.order_id] = [];
+      }
+      productsByOrderId[product.order_id].push(product);
+    });
+
+    // Attach products to each order
+    ordersResult.forEach((order) => {
+      order.products = productsByOrderId[order.id] || []; // Default to empty array if no products
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: ordersResult,
+      allProducts: orProducts,
+    });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the orders",
+      error: error.message,
+    });
+  }
+};
