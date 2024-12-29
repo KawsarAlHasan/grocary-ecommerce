@@ -1379,3 +1379,85 @@ exports.updatePrdt = async (req, res) => {
     });
   }
 };
+
+// get all products
+exports.getProducts = async (req, res) => {
+  try {
+    // Extract search, filter, page, and limit criteria from query parameters
+    const { name, category, page = 1, limit = 20 } = req.query;
+
+    // Calculate the offset for pagination
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build the base query
+    let productQuery = `
+      SELECT 
+        p.*,  
+        c.category_image, 
+        c.category_name
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_tags pt ON p.id = pt.product_id
+      WHERE 1 = 1
+      ORDER BY p.id DESC
+    `;
+
+    // Add filters to the query
+    if (name) {
+      productQuery += ` AND p.name LIKE '%${name}%'`;
+    }
+
+    if (category) {
+      productQuery += ` AND c.category_name = '${category}'`;
+    }
+
+    // Add pagination
+    productQuery += ` LIMIT ${parseInt(limit)} OFFSET ${offset}`;
+
+    // Execute the query
+    const [products] = await db.query(productQuery);
+
+    if (!products.length) {
+      return res.status(404).send({
+        success: false,
+        message: "No products found",
+      });
+    }
+
+    // Get the total count of products (without pagination) for metadata
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE 1 = 1
+    `;
+    if (name) {
+      countQuery += ` AND p.name LIKE '%${name}%'`;
+    }
+    if (category) {
+      countQuery += ` AND c.category_name = '${category}'`;
+    }
+
+    const [countResult] = await db.query(countQuery);
+    const total = countResult[0]?.total || 0;
+
+    // Send the product data with pagination info
+    res.status(200).send({
+      success: true,
+      message: "Products retrieved successfully",
+      pagination: {
+        totalProducts: total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+      data: products,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "An error occurred while fetching the products",
+      error: error.message,
+    });
+  }
+};

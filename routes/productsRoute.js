@@ -16,12 +16,14 @@ const {
   updateProductUCS,
   productName,
   updatePrdt,
+  getProducts,
 } = require("../controllers/productsController");
 const verifyAdmin = require("../middleware/verifyAdmin");
 
 const router = express.Router();
 
 router.post("/create", createProducts);
+router.get("/getProducts", getProducts);
 router.get("/all-with-page", getAllProducts);
 router.get("/new-with-page", getNewAllProducts);
 router.get("/all", getAllProducts);

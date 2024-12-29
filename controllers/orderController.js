@@ -946,3 +946,74 @@ exports.getAllArrayOrders = async (req, res) => {
     });
   }
 };
+
+// get all order
+exports.getOrders = async (req, res) => {
+  try {
+    const { order_status, fromDate, toDate, user_id } = req.query;
+
+    let ordersQuery = `
+      SELECT 
+        o.*, 
+        uda.phone, 
+        uda.contact, 
+        uda.address, 
+        uda.address_type, 
+        uda.city, 
+        uda.post_code, 
+        uda.message
+      FROM orders o
+      LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+    `;
+
+    const whereClauses = [];
+    const queryParams = [];
+
+    if (order_status) {
+      whereClauses.push(`o.order_status = ?`);
+      queryParams.push(order_status);
+    }
+
+    if (user_id) {
+      whereClauses.push(`o.created_by = ?`);
+      queryParams.push(user_id);
+    }
+
+    if (fromDate && toDate) {
+      const fromDateString = `${fromDate} 00:00:00`;
+      const toDateString = `${toDate} 23:59:59`;
+
+      whereClauses.push(`o.created_at BETWEEN ? AND ?`);
+      queryParams.push(fromDateString, toDateString);
+    }
+
+    if (whereClauses.length > 0) {
+      ordersQuery += ` WHERE ` + whereClauses.join(" AND ");
+    }
+
+    ordersQuery += `ORDER BY o.id DESC`;
+
+    const [ordersResult] = await db.execute(ordersQuery, queryParams);
+
+    if (ordersResult.length === 0) {
+      return res.status(200).json({
+        success: false,
+        message: "No orders found",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      totalOrders: ordersResult.length,
+      data: ordersResult,
+    });
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the orders",
+      error: error.message,
+    });
+  }
+};
