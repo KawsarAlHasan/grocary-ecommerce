@@ -1089,6 +1089,7 @@ exports.updateProduct = async (req, res) => {
       message: "Product updated successfully",
     });
   } catch (error) {
+    console.log(error.message);
     res.status(500).send({
       success: false,
       message: "An error occurred while updating the product",
@@ -1296,6 +1297,81 @@ exports.updateProductUCS = async (req, res) => {
       message: "Product updated successfully",
     });
   } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "An error occurred while updating the product",
+      error: error.message,
+    });
+  }
+};
+
+// product update
+exports.updatePrdt = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const {
+      name,
+      product_type,
+      unit,
+      tax,
+      country,
+      purchase_price,
+      regular_price,
+      selling_price,
+      whole_price,
+      discount_price,
+      supper_marcent,
+    } = req.body;
+
+    // Check if the product exists
+    const [product] = await db.query("SELECT * FROM products WHERE id = ?", [
+      productId,
+    ]);
+
+    if (product.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Update the product information
+    await db.query(
+      `UPDATE products SET 
+        name = ?,
+        product_type = ?,
+        unit = ?,
+        tax = ?,
+        country = ?,
+        purchase_price = ?,
+        regular_price = ?,
+        selling_price = ?,
+        whole_price = ?,
+        discount_price = ?,
+        supper_marcent = ?
+      WHERE id = ?`,
+      [
+        name || product[0].name,
+        product_type || product[0].product_type,
+        unit || product[0].unit,
+        tax || product[0].tax,
+        country || product[0].country,
+        purchase_price || product[0].purchase_price,
+        regular_price || product[0].regular_price,
+        selling_price || product[0].selling_price,
+        whole_price || product[0].whole_price,
+        discount_price || product[0].discount_price,
+        supper_marcent || product[0].supper_marcent,
+        productId,
+      ]
+    );
+
+    res.status(200).send({
+      success: true,
+      message: "Product updated successfully",
+    });
+  } catch (error) {
+    console.log(error.message);
     res.status(500).send({
       success: false,
       message: "An error occurred while updating the product",

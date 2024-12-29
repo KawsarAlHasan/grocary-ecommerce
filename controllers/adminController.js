@@ -261,6 +261,75 @@ exports.adminRoleIdUpdate = async (req, res) => {
   }
 };
 
+// update admin by id
+exports.adminUpdateByAdminId = async (req, res) => {
+  try {
+    const adminID = req.params.id;
+
+    const { role, first_name, last_name, email } = req.body;
+
+    if (role == 1) {
+      return res.status(403).send({
+        success: false,
+        message: "Super Admin role cannot be assigned to another admin",
+      });
+    }
+
+    const [data] = await db.query(`SELECT * FROM admins WHERE id=? `, [
+      adminID,
+    ]);
+    if (!data || data.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No admins found",
+      });
+    }
+
+    const [allData] = await db.query(
+      `SELECT email FROM admins WHERE email =?`,
+      [email]
+    );
+
+    if (allData.length > 0) {
+      if (allData[0].email !== data[0].email) {
+        return res.status(404).send({
+          success: false,
+          message: "Email already exists",
+        });
+      }
+    }
+
+    if (data[0].role_id == 1) {
+      return res.status(403).send({
+        success: false,
+        message: "Supper Admin role Not be changed",
+      });
+    }
+
+    await db.query(
+      `UPDATE admins SET role_id=?, first_name=?, last_name=?, email=?  WHERE id =?`,
+      [
+        role || data[0].role_id,
+        first_name || data[0].first_name,
+        last_name || data[0].last_name,
+        email || data[0].email,
+        adminID,
+      ]
+    );
+
+    res.status(200).send({
+      success: true,
+      message: "role updated successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error in Update role",
+      error: error.message,
+    });
+  }
+};
+
 // get all Admin
 exports.getAllAdmins = async (req, res) => {
   try {

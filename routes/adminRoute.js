@@ -11,6 +11,7 @@ const {
   deleteAdmin,
   getAllRole,
   getAllRoleWithPermission,
+  adminUpdateByAdminId,
 } = require("../controllers/adminController");
 const verifyAdmin = require("../middleware/verifyAdmin");
 const router = express.Router();
@@ -23,6 +24,7 @@ router.get("/all", verifyAdmin, getAllAdmins);
 router.put("/update", verifyAdmin, updateAdmin);
 router.put("/update/password", verifyAdmin, updateAdminPassword);
 router.put("/update/role/:id", verifyAdmin, adminRoleIdUpdate);
+router.put("/update/:id", verifyAdmin, adminUpdateByAdminId);
 router.delete("/delete/:id", verifyAdmin, deleteAdmin);
 
 router.get("/role", verifyAdmin, getAllRole);

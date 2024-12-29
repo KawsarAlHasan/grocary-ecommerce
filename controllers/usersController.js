@@ -478,13 +478,7 @@ exports.userStatusUpdate = async (req, res) => {
       });
     }
 
-    const { status } = req.body;
-    if (!status) {
-      return res.status(404).send({
-        success: false,
-        message: "status is requied in body",
-      });
-    }
+    const { status, account_type } = req.body;
 
     const [data] = await db.query(`SELECT * FROM users WHERE id=? `, [userId]);
     if (!data || data.length === 0) {
@@ -494,7 +488,11 @@ exports.userStatusUpdate = async (req, res) => {
       });
     }
 
-    await db.query(`UPDATE users SET status=?  WHERE id =?`, [status, userId]);
+    await db.query(`UPDATE users SET status=?, account_type=?  WHERE id =?`, [
+      status || data[0].status,
+      account_type || data[0].account_type,
+      userId,
+    ]);
 
     res.status(200).send({
       success: true,

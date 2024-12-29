@@ -15,6 +15,7 @@ const {
   getNewAllProductsWithOutPage,
   updateProductUCS,
   productName,
+  updatePrdt,
 } = require("../controllers/productsController");
 const verifyAdmin = require("../middleware/verifyAdmin");
 
@@ -30,6 +31,7 @@ router.get("/random", getRandomProducts);
 
 router.put("/update-ucs/:id", updateProductUCS);
 router.put("/update/:id", updateProduct);
+router.put("/upd/:id", updatePrdt);
 
 router.delete("/delete/:id", deleteProduct);
 
