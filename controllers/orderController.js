@@ -742,7 +742,7 @@ exports.orderStatus = async (req, res) => {
 
 // Update Order Product Price and Order Details
 exports.updateOrderProductPrice = async (req, res) => {
-  const connection = await db.getConnection(); // Assume db.getConnection() returns a MySQL connection instance
+  const connection = await db.getConnection();
 
   try {
     const order_id = req.params.id;
@@ -795,33 +795,16 @@ exports.updateOrderProductPrice = async (req, res) => {
     let totalUpdatedRows = orderResult.changedRows; // Track total updated rows
     let totalInsertedRows = 0; // Track total inserted rows
 
-    // Update products in the `order_products` table
-    if (products) {
-      for (let product of products) {
-        const { product_id, price, quantity } = product;
+    await db.query(`DELETE FROM order_products WHERE order_id=?`, [order_id]);
+    for (let product of products) {
+      const { product_id, price, quantity } = product;
 
-        // Check if the product exists in the order
-        const [productData] = await connection.query(
-          `SELECT * FROM order_products WHERE order_id = ? AND product_id = ?`,
-          [order_id, product_id]
-        );
-
-        if (productData && productData.length > 0) {
-          // Update existing product in the order
-          const [orderProduct] = await connection.execute(
-            `UPDATE order_products SET price = ?, quantity = ? WHERE order_id = ? AND product_id = ?`,
-            [price, quantity, order_id, product_id]
-          );
-          totalUpdatedRows += orderProduct.changedRows;
-        } else {
-          // If the product doesn't exist, insert it as a new product for this order
-          const [insertProductData] = await connection.execute(
-            `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?)`,
-            [order_id, product_id, price, quantity]
-          );
-          totalInsertedRows += insertProductData.affectedRows;
-        }
-      }
+      // If the product doesn't exist, insert it as a new product for this order
+      const [insertProductData] = await connection.execute(
+        `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?)`,
+        [order_id, product_id, price, quantity]
+      );
+      totalInsertedRows += insertProductData.affectedRows;
     }
 
     // Commit transaction
