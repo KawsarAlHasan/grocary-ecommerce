@@ -837,6 +837,87 @@ exports.updateOrderProductPrice = async (req, res) => {
   }
 };
 
+// Update Order Product Price and Order Details
+exports.updateOrderOnePage = async (req, res) => {
+  const connection = await db.getConnection();
+
+  try {
+    const order_id = req.params.id;
+    const {
+      company,
+      created_by,
+      delivery_date,
+      payment_method,
+      sub_total,
+      tax,
+      tax_amount,
+      delivery_fee,
+      total,
+    } = req.body;
+
+    // Start transaction
+    await connection.beginTransaction();
+
+    // Check if the order exists
+    const [orderData] = await connection.query(
+      `SELECT * FROM orders WHERE id = ?`,
+      [order_id]
+    );
+
+    if (!orderData || orderData.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Order found",
+      });
+    }
+
+    // Update `orders` table with the new values
+    const [orderResult] = await connection.execute(
+      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
+      [
+        company || orderData[0].company,
+        created_by || orderData[0].created_by,
+        delivery_date || orderData[0].delivery_date,
+        payment_method || orderData[0].payment_method,
+        sub_total || orderData[0].sub_total,
+        tax || orderData[0].tax,
+        tax_amount || orderData[0].tax_amount,
+        delivery_fee || orderData[0].delivery_fee,
+        total || orderData[0].total,
+        order_id,
+      ]
+    );
+
+    // Commit transaction
+    await connection.commit();
+
+    if (orderResult.changedRows === 0) {
+      return res.status(201).json({
+        success: true,
+        message: "No Data change",
+      });
+    }
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Order and product prices updated successfully",
+    });
+  } catch (error) {
+    // Rollback transaction in case of error
+    await connection.rollback();
+
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the order",
+      error: error.message,
+    });
+  } finally {
+    // Release the connection back to the pool
+    connection.release();
+  }
+};
+
 // get all array order
 exports.getAllArrayOrders = async (req, res) => {
   try {

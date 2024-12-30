@@ -10,6 +10,7 @@ const {
   getAllUserOrderForAdmin,
   getAllArrayOrders,
   getOrders,
+  updateOrderOnePage,
 } = require("../controllers/orderController");
 const verifyUser = require("../middleware/verifyUser");
 const verifyAdmin = require("../middleware/verifyAdmin");
@@ -26,5 +27,6 @@ router.get("/all", verifyAdmin, getAllOrders);
 router.get("/getOrders", getOrders);
 router.get("/:id", getOrderById);
 router.put("/update-price/:id", verifyAdmin, updateOrderProductPrice);
+router.put("/update/:id", verifyAdmin, updateOrderOnePage);
 
 module.exports = router;
