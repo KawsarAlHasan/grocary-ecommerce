@@ -953,12 +953,15 @@ exports.getAllArrayOrders = async (req, res) => {
     // Fetch all products for the orders
     const [orProducts] = await db.execute(
       `SELECT or_pro.*,
+      SUM(or_pro.quantity) AS quantity,
       pro.name,
       pro.unit,
       or_pro.order_id
       FROM order_products or_pro
       LEFT JOIN products pro ON or_pro.product_id = pro.id
-      WHERE or_pro.order_id IN ${orderIdsArray}`
+      WHERE or_pro.order_id IN ${orderIdsArray}
+      GROUP BY or_pro.product_id
+      `
     );
 
     // Get all product IDs
