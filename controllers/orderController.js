@@ -756,6 +756,7 @@ exports.updateOrderProductPrice = async (req, res) => {
       tax_amount,
       delivery_fee,
       total,
+      user_delivery_address_id,
       products,
     } = req.body;
 
@@ -777,7 +778,7 @@ exports.updateOrderProductPrice = async (req, res) => {
 
     // Update `orders` table with the new values
     const [orderResult] = await connection.execute(
-      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
+      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, user_delivery_address_id = ?, total = ? WHERE id = ?`,
       [
         company || orderData[0].company,
         created_by || orderData[0].created_by,
@@ -787,6 +788,7 @@ exports.updateOrderProductPrice = async (req, res) => {
         tax || orderData[0].tax,
         tax_amount || orderData[0].tax_amount,
         delivery_fee || orderData[0].delivery_fee,
+        user_delivery_address_id || orderData[0].user_delivery_address_id,
         total || orderData[0].total,
         order_id,
       ]
