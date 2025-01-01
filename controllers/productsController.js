@@ -1383,39 +1383,45 @@ exports.updatePrdt = async (req, res) => {
 // get all products
 exports.getProducts = async (req, res) => {
   try {
-    // Extract search, filter, page, and limit criteria from query parameters
     const { name, category, page = 1, limit = 20 } = req.query;
-
-    // Calculate the offset for pagination
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    // Build the base query
-    let productQuery = `
+    // Base query and filters
+    const baseQuery = `
       SELECT 
-        p.*,  
+        p.*, 
         c.category_image, 
         c.category_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN product_tags pt ON p.id = pt.product_id
-      WHERE 1 = 1
-      ORDER BY p.id DESC
     `;
+    const whereClauses = [];
+    const queryParams = [];
 
-    // Add filters to the query
+    // Add dynamic filters
     if (name) {
-      productQuery += ` AND p.name LIKE '%${name}%'`;
+      whereClauses.push("p.name LIKE ?");
+      queryParams.push(`%${name}%`);
     }
-
     if (category) {
-      productQuery += ` AND c.category_name = '${category}'`;
+      whereClauses.push("c.category_name = ?");
+      queryParams.push(category);
     }
 
-    // Add pagination
-    productQuery += ` LIMIT ${parseInt(limit)} OFFSET ${offset}`;
+    // Combine query with WHERE clauses
+    const whereQuery = whereClauses.length
+      ? `WHERE ${whereClauses.join(" AND ")}`
+      : "";
+    const finalQuery = `
+      ${baseQuery} 
+      ${whereQuery} 
+      ORDER BY p.id DESC 
+      LIMIT ? OFFSET ?
+    `;
+    queryParams.push(parseInt(limit), offset);
 
-    // Execute the query
-    const [products] = await db.query(productQuery);
+    // Execute the main query
+    const [products] = await db.query(finalQuery, queryParams);
 
     if (!products.length) {
       return res.status(404).send({
@@ -1424,24 +1430,18 @@ exports.getProducts = async (req, res) => {
       });
     }
 
-    // Get the total count of products (without pagination) for metadata
+    // Count total products for pagination metadata
     const countQuery = `
       SELECT COUNT(*) AS total
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE 1 = 1
+      ${whereQuery}
     `;
-    if (name) {
-      countQuery += ` AND p.name LIKE '%${name}%'`;
-    }
-    if (category) {
-      countQuery += ` AND c.category_name = '${category}'`;
-    }
+    const [countResult] = await db.query(countQuery, queryParams.slice(0, -2)); // Remove LIMIT and OFFSET params
 
-    const [countResult] = await db.query(countQuery);
     const total = countResult[0]?.total || 0;
 
-    // Send the product data with pagination info
+    // Respond with data and pagination info
     res.status(200).send({
       success: true,
       message: "Products retrieved successfully",
