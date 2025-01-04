@@ -1060,7 +1060,7 @@ exports.getOrders = async (req, res) => {
       ordersQuery += ` WHERE ` + whereClauses.join(" AND ");
     }
 
-    ordersQuery += `ORDER BY o.id DESC`;
+    ordersQuery += ` ORDER BY o.id DESC`;
 
     const [ordersResult] = await db.execute(ordersQuery, queryParams);
 
