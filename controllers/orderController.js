@@ -235,6 +235,7 @@ exports.getOrderById = async (req, res) => {
           name: product.name,
           quantity: product.quantity,
           price: product.price,
+          vat: product.vat,
           images: [],
         };
       }
