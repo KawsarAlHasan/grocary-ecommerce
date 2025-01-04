@@ -215,6 +215,7 @@ exports.getOrderById = async (req, res) => {
           p.name, 
           op.quantity, 
           op.price, 
+          op.vat, 
           pi.id as image_id, 
           pi.image_url 
        FROM order_products op 
