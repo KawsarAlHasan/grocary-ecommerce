@@ -120,11 +120,11 @@ exports.createOrderForAdmin = async (req, res) => {
 
     // Insert products into `order_products` table
     for (let product of products) {
-      const { product_id, quantity, price } = product;
+      const { product_id, quantity, price, vat } = product;
       await connection.execute(
-        `INSERT INTO order_products (order_id, product_id, quantity, price)
-         VALUES (?, ?, ?, ?)`,
-        [orderId, product_id, quantity, price]
+        `INSERT INTO order_products (order_id, product_id, quantity, price, vat)
+         VALUES (?, ?, ?, ?, ?)`,
+        [orderId, product_id, quantity, price, vat]
       );
     }
 
@@ -799,12 +799,12 @@ exports.updateOrderProductPrice = async (req, res) => {
 
     await db.query(`DELETE FROM order_products WHERE order_id=?`, [order_id]);
     for (let product of products) {
-      const { product_id, price, quantity } = product;
+      const { product_id, price, quantity, vat } = product;
 
       // If the product doesn't exist, insert it as a new product for this order
       const [insertProductData] = await connection.execute(
-        `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?)`,
-        [order_id, product_id, price, quantity]
+        `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?, ?)`,
+        [order_id, product_id, price, quantity, vat || 0]
       );
       totalInsertedRows += insertProductData.affectedRows;
     }
