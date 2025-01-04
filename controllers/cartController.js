@@ -83,7 +83,7 @@ exports.getAllCartProducts = async (req, res) => {
         );
 
         // Assign the image URLs to the item
-        item.product_images = images[0].image_url;
+        item.product_images = images[0]?.image_url;
       } else {
         // If product data is missing, provide default or skip setting it
         item.product_name = null;
