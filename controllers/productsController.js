@@ -149,11 +149,8 @@ exports.getAllProducts = async (req, res) => {
         c.category_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN product_sub_categories psc ON p.id = psc.product_id
-      LEFT JOIN sub_categories sc ON psc.sub_category_id = sc.id
-      LEFT JOIN product_tags pt ON p.id = pt.product_id
       WHERE 1 = 1
-    `;
+      `;
 
     // Add search and filter conditions dynamically
     if (name) {
@@ -162,14 +159,6 @@ exports.getAllProducts = async (req, res) => {
 
     if (category) {
       productQuery += ` AND c.category_name LIKE '%${category}%'`;
-    }
-
-    if (subcategory) {
-      productQuery += ` AND sc.name LIKE '%${subcategory}%'`;
-    }
-
-    if (tag) {
-      productQuery += ` AND pt.tag_name LIKE '%${tag}%'`;
     }
 
     // Add LIMIT and OFFSET for pagination
@@ -198,15 +187,15 @@ exports.getAllProducts = async (req, res) => {
           }))
         : [];
 
-      const [variants] = await db.query(
-        `SELECT id, variant_name, variant_value FROM product_variants WHERE product_id = ?`,
-        [product.id]
-      );
-      product.variants = variants.map((variant) => ({
-        variant_id: variant.id,
-        variant_name: variant.variant_name,
-        variant_value: variant.variant_value,
-      }));
+      // const [variants] = await db.query(
+      //   `SELECT id, variant_name, variant_value FROM product_variants WHERE product_id = ?`,
+      //   [product.id]
+      // );
+      // product.variants = variants.map((variant) => ({
+      //   variant_id: variant.id,
+      //   variant_name: variant.variant_name,
+      //   variant_value: variant.variant_value,
+      // }));
 
       const [subcategories] = await db.query(
         `SELECT * FROM product_sub_categories WHERE product_id = ?`,
@@ -216,7 +205,7 @@ exports.getAllProducts = async (req, res) => {
       const subcategoryPromises = subcategories.map(async (subCategory) => {
         const [subcategoryDetails] = await db.query(
           `SELECT id, image, name
-           FROM sub_categories 
+           FROM sub_categories
            WHERE id = ?`,
           [subCategory.sub_category_id]
         );
@@ -259,17 +248,32 @@ exports.getAllProducts = async (req, res) => {
 
     const totalProducts = totalProductsResult[0].totalProducts;
 
+    let data = allProducts;
+    if (subcategory) {
+      const filterProductsBySubCategory = allProducts.filter((product) =>
+        product.subcategories.some((sub) => sub.subCategory_name == subcategory)
+      );
+      if (filterProductsBySubCategory.length > 0) {
+        data = filterProductsBySubCategory;
+      } else {
+        return res.status(404).send({
+          success: false,
+          message: "No products found",
+        });
+      }
+    }
+
     // Send the product data with pagination info
     res.status(200).send({
       success: true,
       message: "Products retrieved successfully",
       pagination: {
-        totalProducts: totalProducts,
+        totalProducts: data.length,
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(totalProducts / limit),
       },
-      data: allProducts,
+      data: data,
     });
   } catch (error) {
     res.status(500).send({
@@ -280,6 +284,7 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+// get all product name
 exports.productName = async (req, res) => {
   try {
     // products
