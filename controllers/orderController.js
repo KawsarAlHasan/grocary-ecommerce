@@ -850,6 +850,7 @@ exports.updateOrderOnePage = async (req, res) => {
     const {
       company,
       created_by,
+      user_name,
       delivery_date,
       payment_method,
       sub_total,
@@ -892,10 +893,22 @@ exports.updateOrderOnePage = async (req, res) => {
       ]
     );
 
+    const [userData] = await connection.execute(
+      "SELECT name FROM users WHERE id=?",
+      [created_by || orderData[0].created_by]
+    );
+    const [updateUserName] = await connection.execute(
+      "UPDATE users SET name=? WHERE id=?",
+      [
+        user_name || userData[0].user_name,
+        created_by || orderData[0].created_by,
+      ]
+    );
+
     // Commit transaction
     await connection.commit();
 
-    if (orderResult.changedRows === 0) {
+    if (orderResult.changedRows === 0 && updateUserName.changedRows === 0) {
       return res.status(201).json({
         success: true,
         message: "No Data change",
@@ -1026,6 +1039,8 @@ exports.getOrders = async (req, res) => {
     let ordersQuery = `
       SELECT 
         o.*, 
+        user.id AS user_id,
+        user.name AS user_name,
         uda.phone, 
         uda.contact, 
         uda.address, 
@@ -1035,6 +1050,7 @@ exports.getOrders = async (req, res) => {
         uda.message
       FROM orders o
       LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+      LEFT JOIN users user ON o.created_by = user.id
     `;
 
     const whereClauses = [];
