@@ -805,7 +805,7 @@ exports.updateOrderProductPrice = async (req, res) => {
 
       // If the product doesn't exist, insert it as a new product for this order
       const [insertProductData] = await connection.execute(
-        `INSERT INTO order_products (order_id, product_id, price, quantity) VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO order_products (order_id, product_id, price, quantity, vat) VALUES (?, ?, ?, ?, ?)`,
         [order_id, product_id, price, quantity, vat || 0]
       );
       totalInsertedRows += insertProductData.affectedRows;
