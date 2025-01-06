@@ -935,6 +935,51 @@ exports.updateOrderOnePage = async (req, res) => {
   }
 };
 
+// order date change
+exports.orderDateChange = async (req, res) => {
+  try {
+    const order_id = req.params.id;
+    const { delivery_date } = req.body;
+
+    // Check if the order exists
+    const [orderData] = await db.query(`SELECT * FROM orders WHERE id = ?`, [
+      order_id,
+    ]);
+
+    if (!orderData || orderData.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Order found",
+      });
+    }
+
+    // Update `orders` table with the new values
+    const [orderResult] = await db.execute(
+      `UPDATE orders SET delivery_date =? WHERE id = ?`,
+      [delivery_date || orderData[0].delivery_date, order_id]
+    );
+
+    if (orderResult.changedRows === 0) {
+      return res.status(201).json({
+        success: true,
+        message: "No Data change",
+      });
+    }
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Order and product prices updated successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the order",
+      error: error.message,
+    });
+  }
+};
+
 // get all array order
 exports.getAllArrayOrders = async (req, res) => {
   try {

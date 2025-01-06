@@ -11,6 +11,7 @@ const {
   getAllArrayOrders,
   getOrders,
   updateOrderOnePage,
+  orderDateChange,
 } = require("../controllers/orderController");
 const verifyUser = require("../middleware/verifyUser");
 const verifyAdmin = require("../middleware/verifyAdmin");
@@ -28,5 +29,6 @@ router.get("/getOrders", getOrders);
 router.get("/:id", getOrderById);
 router.put("/update-price/:id", verifyAdmin, updateOrderProductPrice);
 router.put("/update/:id", verifyAdmin, updateOrderOnePage);
+router.put("/date/:id", verifyAdmin, orderDateChange);
 
 module.exports = router;
