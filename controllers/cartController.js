@@ -74,7 +74,7 @@ exports.getAllCartProducts = async (req, res) => {
         item.product_regular_price = product[0].regular_price;
         item.product_selling_price = product[0].selling_price;
         item.product_whole_price = product[0].whole_price;
-        item.product_discount_price = product[0].discount_price;
+        item.product_supper_marcent = product[0].supper_marcent;
 
         // Fetch images related to the product from product_images table
         const [images] = await db.query(
@@ -96,6 +96,7 @@ exports.getAllCartProducts = async (req, res) => {
         item.product_selling_price = null;
         item.product_whole_price = null;
         item.product_discount_price = null;
+        item.product_supper_marcent = null;
         item.product_images = null; // Default to empty array if no images are found
       }
     }
