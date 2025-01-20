@@ -19,6 +19,7 @@ exports.signUpUser = async (req, res) => {
       contract_facturation,
       post_code,
       siret,
+      status,
     } = req.body;
 
     // Check if all required fields are provided
@@ -35,7 +36,7 @@ exports.signUpUser = async (req, res) => {
 
     // Insert user into the database
     const [result] = await db.query(
-      "INSERT INTO users (name, email, password, account_email, account_phone, account_type, brand, city, company, contract_comptabilité, contract_facturation, post_code, siret) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (name, email, password, account_email, account_phone, account_type, brand, city, company, contract_comptabilité, contract_facturation, post_code, siret, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         name,
         email,
@@ -50,6 +51,7 @@ exports.signUpUser = async (req, res) => {
         contract_facturation || null,
         post_code || null,
         siret || null,
+        status || "Actif",
       ]
     );
 

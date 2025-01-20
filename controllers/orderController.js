@@ -724,10 +724,30 @@ exports.orderStatus = async (req, res) => {
       });
     }
 
-    await db.query(`UPDATE orders SET order_status=?  WHERE id =?`, [
-      order_status,
-      orderId,
-    ]);
+    const date = new Date();
+
+    const statusFieldMap = {
+      "En Préparation": "en_préparation_date",
+      "Prête pour Dispatch": "prête_pour_dispatch_date",
+      "En cours de Livraison": "en_cours_de_livraison_date",
+      Livré: "livré_date",
+      "À régler": "a_régler_date",
+      Terminé: "terminé_date",
+      Annulé: "annulé_date",
+    };
+
+    const dateField = statusFieldMap[order_status];
+
+    if (dateField) {
+      const query = `UPDATE orders SET order_status=?, ${dateField}=? WHERE id=?`;
+
+      await db.query(query, [order_status, date, orderId]);
+    } else {
+      return res.status(404).send({
+        success: false,
+        message: "Invalid order_status provided!",
+      });
+    }
 
     res.status(200).send({
       success: true,
@@ -1149,3 +1169,5 @@ exports.getOrders = async (req, res) => {
     });
   }
 };
+
+// Reçue en Attente
