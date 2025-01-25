@@ -182,13 +182,6 @@ exports.getOrderById = async (req, res) => {
       });
     }
 
-    if (orderResult[0].created_by == user_id) {
-      return res.status(404).json({
-        success: false,
-        message: "This order not your order",
-      });
-    }
-
     const [userInfo] = await db.query(`SELECT * FROM users WHERE id=? `, [
       orderResult[0].created_by,
     ]);
@@ -280,7 +273,7 @@ exports.getOrderById = async (req, res) => {
 exports.getOrderByIdWithVerify = async (req, res) => {
   try {
     const order_id = req.params.id; // Get the order ID from the request parameters
-    const user_id = req.decodedUser.id;
+    const userID = req.decodedUser.id;
 
     // Fetch order details from the `orders` table and join with `user_delivery_address`
     const [orderResult] = await db.execute(
@@ -304,6 +297,13 @@ exports.getOrderByIdWithVerify = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Order not found",
+      });
+    }
+
+    if (orderResult[0].created_by == userID) {
+      return res.status(404).json({
+        success: false,
+        message: "This order not your order",
       });
     }
 
