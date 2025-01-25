@@ -300,7 +300,7 @@ exports.getOrderByIdWithVerify = async (req, res) => {
       });
     }
 
-    if (orderResult[0].created_by == userID) {
+    if (orderResult[0].created_by !== userID) {
       return res.status(404).json({
         success: false,
         message: "This order not your order",
