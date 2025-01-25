@@ -182,8 +182,133 @@ exports.getOrderById = async (req, res) => {
       });
     }
 
+    if (orderResult[0].created_by == user_id) {
+      return res.status(404).json({
+        success: false,
+        message: "This order not your order",
+      });
+    }
+
     const [userInfo] = await db.query(`SELECT * FROM users WHERE id=? `, [
-      orderResult[0].id,
+      orderResult[0].created_by,
+    ]);
+
+    const order = orderResult[0]; // Order information
+
+    // Organize delivery address data
+    const userDeliveryAddress = {
+      phone: order.phone,
+      contact: order.contact,
+      address: order.address,
+      address_type: order.address_type,
+      city: order.city,
+      post_code: order.post_code,
+      message: order.message,
+    };
+
+    // Remove address fields from the `order` object to avoid redundancy
+    delete order.phone;
+    delete order.contact;
+    delete order.address;
+    delete order.address_type;
+    delete order.city;
+    delete order.post_code;
+    delete order.message;
+
+    // Fetch products associated with the order along with their images
+    const [productsResult] = await db.execute(
+      `SELECT 
+          op.product_id, 
+          p.name, 
+          op.quantity, 
+          op.price, 
+          op.vat, 
+          pi.id as image_id, 
+          pi.image_url 
+       FROM order_products op 
+       LEFT JOIN products p ON p.id = op.product_id 
+       LEFT JOIN product_images pi ON pi.product_id = op.product_id 
+       WHERE op.order_id = ?`,
+      [order_id]
+    );
+
+    // Organize products by combining the images
+    const productsMap = {};
+
+    productsResult.forEach((product) => {
+      if (!productsMap[product.product_id]) {
+        productsMap[product.product_id] = {
+          product_id: product.product_id,
+          name: product.name,
+          quantity: product.quantity,
+          price: product.price,
+          vat: product.vat,
+          images: [],
+        };
+      }
+
+      if (product.image_id) {
+        productsMap[product.product_id].images.push({
+          id: product.image_id,
+          image_url: product.image_url,
+        });
+      }
+    });
+
+    const products = Object.values(productsMap);
+
+    // Add products and delivery address to the order object
+    order.userInfo = userInfo[0];
+    order.products = products;
+    order.user_delivery_address = userDeliveryAddress;
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the order",
+      error: error.message,
+    });
+  }
+};
+
+// Get order with verify
+exports.getOrderByIdWithVerify = async (req, res) => {
+  try {
+    const order_id = req.params.id; // Get the order ID from the request parameters
+    const user_id = req.decodedUser.id;
+
+    // Fetch order details from the `orders` table and join with `user_delivery_address`
+    const [orderResult] = await db.execute(
+      `SELECT 
+          o.*, 
+          uda.phone, 
+          uda.contact, 
+          uda.address, 
+          uda.address_type, 
+          uda.city, 
+          uda.post_code, 
+          uda.message
+       FROM orders o
+       LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+       WHERE o.id = ?`,
+      [order_id]
+    );
+
+    // Check if order exists
+    if (orderResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    const [userInfo] = await db.query(`SELECT * FROM users WHERE id=? `, [
+      orderResult[0].created_by,
     ]);
 
     const order = orderResult[0]; // Order information
