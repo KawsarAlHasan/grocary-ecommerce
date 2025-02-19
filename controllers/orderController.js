@@ -1010,9 +1010,14 @@ exports.updateOrderOnePage = async (req, res) => {
     // Start transaction
     await connection.beginTransaction();
 
-    // Check if the order exists
-    const [orderData] = await connection.query(
-      `SELECT * FROM orders WHERE id = ?`,
+    const [orderData] = await db.execute(
+      `SELECT 
+          o.*, 
+          uda.phone, 
+          uda.contact
+       FROM orders o
+       LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+       WHERE o.id = ?`,
       [order_id]
     );
 
@@ -1025,11 +1030,9 @@ exports.updateOrderOnePage = async (req, res) => {
 
     // Update `orders` table with the new values
     const [orderResult] = await connection.execute(
-      `UPDATE orders SET company = ?, contact=?, phone=?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
+      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
       [
         company || orderData[0].company,
-        contact || orderData[0].contact,
-        phone || orderData[0].phone,
         created_by || orderData[0].created_by,
         delivery_date || orderData[0].delivery_date,
         payment_method || orderData[0].payment_method,
@@ -1039,6 +1042,15 @@ exports.updateOrderOnePage = async (req, res) => {
         delivery_fee || orderData[0].delivery_fee,
         total || orderData[0].total,
         order_id,
+      ]
+    );
+
+    await connection.execute(
+      `UPDATE user_delivery_address SET contact=?, phone=? WHERE id = ?`,
+      [
+        contact || orderData[0].contact,
+        phone || orderData[0].phone,
+        orderData[0].user_delivery_address_id,
       ]
     );
 
