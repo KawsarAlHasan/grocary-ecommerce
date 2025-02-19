@@ -1003,6 +1003,8 @@ exports.updateOrderOnePage = async (req, res) => {
       tax_amount,
       delivery_fee,
       total,
+      contact,
+      phone,
     } = req.body;
 
     // Start transaction
@@ -1023,9 +1025,11 @@ exports.updateOrderOnePage = async (req, res) => {
 
     // Update `orders` table with the new values
     const [orderResult] = await connection.execute(
-      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
+      `UPDATE orders SET company = ?, contact=?, phone=?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
       [
         company || orderData[0].company,
+        contact || orderData[0].contact,
+        phone || orderData[0].phone,
         created_by || orderData[0].created_by,
         delivery_date || orderData[0].delivery_date,
         payment_method || orderData[0].payment_method,
