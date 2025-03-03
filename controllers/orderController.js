@@ -16,6 +16,7 @@ exports.createOrder = async (req, res) => {
       delivery_fee,
       total,
       user_delivery_address_id,
+      address,
       products,
     } = req.body;
 
@@ -24,8 +25,8 @@ exports.createOrder = async (req, res) => {
 
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
         user_id,
@@ -37,6 +38,7 @@ exports.createOrder = async (req, res) => {
         delivery_fee,
         total,
         user_delivery_address_id,
+        address,
       ]
     );
 
@@ -92,6 +94,7 @@ exports.createOrderForAdmin = async (req, res) => {
       delivery_fee,
       total,
       user_delivery_address_id,
+      address,
       products,
     } = req.body;
 
@@ -100,7 +103,7 @@ exports.createOrderForAdmin = async (req, res) => {
 
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id)
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
@@ -113,6 +116,7 @@ exports.createOrderForAdmin = async (req, res) => {
         delivery_fee,
         total,
         user_delivery_address_id,
+        address,
       ]
     );
 
@@ -904,6 +908,7 @@ exports.updateOrderProductPrice = async (req, res) => {
       delivery_fee,
       total,
       user_delivery_address_id,
+      address,
       products,
     } = req.body;
 
@@ -925,7 +930,7 @@ exports.updateOrderProductPrice = async (req, res) => {
 
     // Update `orders` table with the new values
     const [orderResult] = await connection.execute(
-      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, user_delivery_address_id = ?, total = ? WHERE id = ?`,
+      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, user_delivery_address_id = ?, address=?, total = ? WHERE id = ?`,
       [
         company || orderData[0].company,
         created_by || orderData[0].created_by,
@@ -936,6 +941,7 @@ exports.updateOrderProductPrice = async (req, res) => {
         tax_amount || orderData[0].tax_amount,
         delivery_fee || orderData[0].delivery_fee,
         user_delivery_address_id || orderData[0].user_delivery_address_id,
+        address || orderData[0].address,
         total || orderData[0].total,
         order_id,
       ]
@@ -1005,6 +1011,7 @@ exports.updateOrderOnePage = async (req, res) => {
       total,
       contact,
       phone,
+      address,
     } = req.body;
 
     // Start transaction
@@ -1030,7 +1037,7 @@ exports.updateOrderOnePage = async (req, res) => {
 
     // Update `orders` table with the new values
     const [orderResult] = await connection.execute(
-      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, total = ? WHERE id = ?`,
+      `UPDATE orders SET company = ?, created_by = ?, delivery_date =?, payment_method = ?, sub_total = ?, tax = ?, tax_amount = ?, delivery_fee = ?, address=?, total = ? WHERE id = ?`,
       [
         company || orderData[0].company,
         created_by || orderData[0].created_by,
@@ -1040,6 +1047,7 @@ exports.updateOrderOnePage = async (req, res) => {
         tax || orderData[0].tax,
         tax_amount || orderData[0].tax_amount,
         delivery_fee || orderData[0].delivery_fee,
+        address || orderData[0].address,
         total || orderData[0].total,
         order_id,
       ]
