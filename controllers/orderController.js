@@ -206,7 +206,7 @@ exports.getOrderById = async (req, res) => {
     // Remove address fields from the `order` object to avoid redundancy
     delete order.phone;
     delete order.contact;
-    delete order.address;
+    // delete order.address;
     delete order.address_type;
     delete order.city;
     delete order.post_code;
@@ -331,7 +331,7 @@ exports.getOrderByIdWithVerify = async (req, res) => {
     // Remove address fields from the `order` object to avoid redundancy
     delete order.phone;
     delete order.contact;
-    delete order.address;
+    // delete order.address;
     delete order.address_type;
     delete order.city;
     delete order.post_code;
@@ -475,7 +475,7 @@ exports.getAllUserOrderForAdmin = async (req, res) => {
       // Remove address fields from the order object
       delete order.phone;
       delete order.contact;
-      delete order.address;
+      // delete order.address;
       delete order.address_type;
       delete order.city;
       delete order.post_code;
@@ -617,7 +617,7 @@ exports.getAllUserOrder = async (req, res) => {
       // Remove address fields from the order object
       delete order.phone;
       delete order.contact;
-      delete order.address;
+      // delete order.address;
       delete order.address_type;
       delete order.city;
       delete order.post_code;
@@ -767,7 +767,7 @@ exports.getAllOrders = async (req, res) => {
 
       delete order.phone;
       delete order.contact;
-      delete order.address;
+      // delete order.address;
       delete order.address_type;
       delete order.city;
       delete order.post_code;
