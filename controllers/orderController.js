@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const moment = require("moment-timezone");
 
 // Create order
 exports.createOrder = async (req, res) => {
@@ -20,13 +21,17 @@ exports.createOrder = async (req, res) => {
       products,
     } = req.body;
 
+    const created_at = moment()
+      .tz("Europe/Paris")
+      .format("YYYY-MM-DD HH:mm:ss");
+
     // Start transaction
     await connection.beginTransaction();
 
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
         user_id,
@@ -38,7 +43,8 @@ exports.createOrder = async (req, res) => {
         delivery_fee,
         total,
         user_delivery_address_id,
-        address,
+        address || "",
+        created_at,
       ]
     );
 
@@ -101,10 +107,14 @@ exports.createOrderForAdmin = async (req, res) => {
     // Start transaction
     await connection.beginTransaction();
 
+    const created_at = moment()
+      .tz("Europe/Paris")
+      .format("YYYY-MM-DD HH:mm:ss");
+
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
         user_id,
@@ -116,7 +126,8 @@ exports.createOrderForAdmin = async (req, res) => {
         delivery_fee,
         total,
         user_delivery_address_id,
-        address,
+        address || "",
+        created_at,
       ]
     );
 
@@ -196,7 +207,7 @@ exports.getOrderById = async (req, res) => {
     const userDeliveryAddress = {
       phone: order.phone,
       contact: order.contact,
-      address: order.address,
+      address: order.user_address,
       address_type: order.address_type,
       city: order.city,
       post_code: order.post_code,
@@ -321,7 +332,7 @@ exports.getOrderByIdWithVerify = async (req, res) => {
     const userDeliveryAddress = {
       phone: order.phone,
       contact: order.contact,
-      address: order.address,
+      address: order.user_address,
       address_type: order.address_type,
       city: order.city,
       post_code: order.post_code,
@@ -465,7 +476,7 @@ exports.getAllUserOrderForAdmin = async (req, res) => {
       const userDeliveryAddress = {
         phone: order.phone,
         contact: order.contact,
-        address: order.address,
+        address: order.user_address,
         address_type: order.address_type,
         city: order.city,
         post_code: order.post_code,
@@ -607,7 +618,7 @@ exports.getAllUserOrder = async (req, res) => {
       const userDeliveryAddress = {
         phone: order.phone,
         contact: order.contact,
-        address: order.address,
+        address: order.user_address,
         address_type: order.address_type,
         city: order.city,
         post_code: order.post_code,
@@ -758,7 +769,7 @@ exports.getAllOrders = async (req, res) => {
       const userDeliveryAddress = {
         phone: order.phone,
         contact: order.contact,
-        address: order.address,
+        address: order.user_address,
         address_type: order.address_type,
         city: order.city,
         post_code: order.post_code,
@@ -823,6 +834,172 @@ exports.getAllOrders = async (req, res) => {
     });
   }
 };
+
+// get all orders
+// exports.getAllOrders2 = async (req, res) => {
+//   try {
+//     const { order_status, fromDate, toDate, user_id } = req.query;
+
+//     let ordersQuery = `
+//       SELECT
+//         o.id,
+//         o.company,
+//         o.created_by,
+//         o.delivery_date,
+//         o.order_status,
+//         o.payment_method,
+//         o.sub_total,
+//         o.tax,
+//         o.tax_amount,
+//         o.delivery_fee,
+//         o.total,
+//         o.user_delivery_address_id,
+//         o.address,
+//         o.en_préparation_date,
+//         o.prête_pour_dispatch_date,
+//         o.en_cours_de_livraison_date,
+//         o.livré_date,
+//         o.a_régler_date,
+//         o.terminé_date,
+//         o.annulé_date,
+//         o.created_at,
+//         o.updated_at,
+//         uda.phone,
+//         uda.contact,
+//         uda.address,
+//         uda.address_type,
+//         uda.city,
+//         uda.post_code,
+//         uda.message
+//       FROM orders o
+//       LEFT JOIN user_delivery_address uda ON o.user_delivery_address_id = uda.id
+//     `;
+
+//     const whereClauses = [];
+//     const queryParams = [];
+
+//     if (order_status) {
+//       whereClauses.push(`o.order_status = ?`);
+//       queryParams.push(order_status);
+//     }
+
+//     if (user_id) {
+//       whereClauses.push(`o.created_by = ?`);
+//       queryParams.push(user_id);
+//     }
+
+//     if (fromDate && toDate) {
+//       const fromDateString = `${fromDate} 00:00:00`;
+//       const toDateString = `${toDate} 23:59:59`;
+
+//       whereClauses.push(`o.created_at BETWEEN ? AND ?`);
+//       queryParams.push(fromDateString, toDateString);
+//     }
+
+//     if (whereClauses.length > 0) {
+//       ordersQuery += ` WHERE ` + whereClauses.join(" AND ");
+//     }
+
+//     ordersQuery += ` ORDER BY o.id DESC`;
+
+//     const [ordersResult] = await db.execute(ordersQuery, queryParams);
+
+//     if (ordersResult.length === 0) {
+//       return res.status(200).json({
+//         success: false,
+//         message: "No orders found",
+//         data: [],
+//       });
+//     }
+
+//     const [productsResult] = await db.execute(
+//       `SELECT
+//           op.order_id,
+//           op.product_id,
+//           p.name,
+//           op.quantity,
+//           op.price,
+//           pi.id as image_id,
+//           pi.image_url
+//         FROM order_products op
+//         LEFT JOIN products p ON p.id = op.product_id
+//         LEFT JOIN product_images pi ON pi.product_id = op.product_id`
+//     );
+
+//     const ordersMap = {};
+
+//     // ✅ `delete` ব্যবহার না করে Destructuring দিয়ে প্রয়োজনীয় ডাটা নেওয়া হয়েছে
+//     ordersResult.forEach(
+//       ({
+//         phone,
+//         contact,
+//         address,
+//         address_type,
+//         city,
+//         post_code,
+//         message,
+//         ...order
+//       }) => {
+//         ordersMap[order.id] = {
+//           ...order,
+//           products: [],
+//           user_delivery_address: {
+//             phone,
+//             contact,
+//             address,
+//             address_type,
+//             city,
+//             post_code,
+//             message,
+//           },
+//         };
+//       }
+//     );
+
+//     // ✅ পণ্য সংযুক্ত করা হচ্ছে
+//     productsResult.forEach((product) => {
+//       if (ordersMap[product.order_id]) {
+//         const order = ordersMap[product.order_id];
+
+//         let productEntry = order.products.find(
+//           (p) => p.product_id === product.product_id
+//         );
+
+//         if (!productEntry) {
+//           productEntry = {
+//             product_id: product.product_id,
+//             name: product.name,
+//             quantity: product.quantity,
+//             price: product.price,
+//             images: [],
+//           };
+//           order.products.push(productEntry);
+//         }
+
+//         if (product.image_id) {
+//           productEntry.images.push({
+//             id: product.image_id,
+//             image_url: product.image_url,
+//           });
+//         }
+//       }
+//     });
+
+//     const orders = Object.values(ordersMap);
+
+//     return res.status(200).json({
+//       success: true,
+//       totalOrders: orders.length,
+//       data: orders,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       success: false,
+//       message: "An error occurred while fetching the orders",
+//       error: error.message,
+//     });
+//   }
+// };
 
 // update order status
 exports.orderStatus = async (req, res) => {
