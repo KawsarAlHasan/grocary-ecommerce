@@ -25,13 +25,17 @@ exports.createOrder = async (req, res) => {
       .tz("Europe/Paris")
       .format("YYYY-MM-DD HH:mm:ss");
 
+    const updated_at = moment()
+      .tz("Europe/Paris")
+      .format("YYYY-MM-DD HH:mm:ss");
+
     // Start transaction
     await connection.beginTransaction();
 
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
         user_id,
@@ -45,6 +49,7 @@ exports.createOrder = async (req, res) => {
         user_delivery_address_id,
         address || "",
         created_at,
+        updated_at,
       ]
     );
 
@@ -111,10 +116,14 @@ exports.createOrderForAdmin = async (req, res) => {
       .tz("Europe/Paris")
       .format("YYYY-MM-DD HH:mm:ss");
 
+    const updated_at = moment()
+      .tz("Europe/Paris")
+      .format("YYYY-MM-DD HH:mm:ss");
+
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
-      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
         user_id,
@@ -128,6 +137,7 @@ exports.createOrderForAdmin = async (req, res) => {
         user_delivery_address_id,
         address || "",
         created_at,
+        updated_at,
       ]
     );
 
@@ -1045,9 +1055,13 @@ exports.orderStatus = async (req, res) => {
     const dateField = statusFieldMap[order_status];
 
     if (dateField) {
-      const query = `UPDATE orders SET order_status=?, ${dateField}=? WHERE id=?`;
+      const updated_at = moment()
+        .tz("Europe/Paris")
+        .format("YYYY-MM-DD HH:mm:ss");
 
-      await db.query(query, [order_status, date, orderId]);
+      const query = `UPDATE orders SET order_status=?, updated_at=?, ${dateField}=? WHERE id=?`;
+
+      await db.query(query, [order_status, updated_at, date, orderId]);
     } else {
       return res.status(404).send({
         success: false,
