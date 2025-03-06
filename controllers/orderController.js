@@ -114,7 +114,7 @@ exports.createOrderForAdmin = async (req, res) => {
     // Insert into `orders` table
     const [orderResult] = await connection.execute(
       `INSERT INTO orders (company, created_by, delivery_date, payment_method, sub_total, tax, tax_amount, delivery_fee, total, user_delivery_address_id, address, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         company,
         user_id,
